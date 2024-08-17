@@ -44,6 +44,7 @@ docker stop shroombot || true
 docker rm shroombot || true
 
 docker run -d \
+    --restart always \
     -e API_ID="${API_ID}" \
     -e API_HASH="${API_HASH}" \
     -e BOT_TOKEN="${BOT_TOKEN}" \
