@@ -106,7 +106,7 @@ class Anonymizer:
                 except (InvalidToken, ValueError) as exc:
                     raise CouldNotDecrypt() from exc
 
-                data = EncryptedData.model_validate(data)
+                data = EncryptedData.parse_obj(data)
 
                 for mapping in data.mappings:
                     topic_x_chat[mapping.topic_id] = mapping.chat_id
@@ -142,7 +142,7 @@ class Anonymizer:
             await asyncio.to_thread(
                 save_encrypted_json_file,
                 self.file_path,
-                EncryptedData(mappings=mappings).model_dump(),
+                EncryptedData(mappings=mappings).dict(),
                 self.encryption_key,
             )
 

@@ -36,10 +36,9 @@ def run(  # pylint: disable=too-many-locals
     import logging.config as logging_config
     from uuid import uuid4
 
-    from aiotdlib import Client, ClientSettings
     from aiotdlib.api import MessageText, UpdateNewMessage
     from aiotdlib.api.api import API
-    from pydantic import SecretStr
+    from aiotdlib.client import Client
 
     from shroombot.anonymizer import Anonymizer
     from shroombot.server import NameRandomizer, process_incomming_message
@@ -60,11 +59,9 @@ def run(  # pylint: disable=too-many-locals
         )
 
         async with Client(
-            settings=ClientSettings(
-                api_id=api_id,
-                api_hash=SecretStr(api_hash),
-                bot_token=SecretStr(bot_token),
-            )
+            api_id=api_id,
+            api_hash=api_hash,
+            bot_token=bot_token,
         ) as client:
             admin_chat_id = await get_chat_id(client, admin_chat)
 

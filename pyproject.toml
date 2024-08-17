@@ -12,11 +12,12 @@ authors = ["Artyom Fomenko"]
 
 [tool.poetry.dependencies]
 # Server deps
-python = "^3.12"
+python = "^3.11"
 typer = "^0.12.3"
-aiotdlib = "^0.24.3"
-pydantic = "^2.8.2"
+
+pydantic = "<2.0"
 cryptography = "^43.0.0"
+aiotdlib = "0.22.0"
 
 
 [tool.poetry.group.test]

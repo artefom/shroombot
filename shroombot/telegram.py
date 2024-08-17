@@ -2,8 +2,8 @@
 Connection to the telegram service
 """
 
-from aiotdlib import Client
 from aiotdlib.api import FormattedText, ForumTopicIcon, InputMessageText
+from aiotdlib.client import Client
 
 from shroombot.server import TelegramApi
 
