@@ -25,6 +25,8 @@ COPY ./shroombot ./shroombot
 # Install package
 RUN pip install --no-deps .
 
+RUN apt-get install -y libssl3
+
 # Run application
 # Use entrypoint and 'cmd' so that SIGTERM and other signals are propagated.
 #
