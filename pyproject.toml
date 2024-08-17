@@ -1,0 +1,83 @@
+[build-system]
+requires = ["poetry-core>=1.8.2", "packaging"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.poetry]
+name = "shroombot"
+version = "0.1.0"
+description = "Telegram bot for Grybnytci"
+authors = ["Artyom Fomenko"]
+
+
+[tool.poetry.dependencies]
+# Server deps
+python = "^3.12"
+typer = "^0.12.3"
+aiotdlib = "^0.24.3"
+pydantic = "^2.8.2"
+cryptography = "^43.0.0"
+
+
+[tool.poetry.group.test]
+optional = true
+
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.4.3"
+pytest-asyncio = "^0.23.2"
+
+
+[tool.poetry.group.lint]
+optional = true
+
+
+[tool.poetry.group.lint.dependencies]
+pyright = "^1.1.341"
+pylint = "^3.0.3"
+
+
+[[tool.poetry.source]]
+name = "distribusion"
+url = "https://gitlab.com/api/v4/groups/15793688/-/packages/pypi/simple"
+priority = "supplemental"
+
+
+[tool.isort]
+profile = "black"
+
+
+[tool.pylint.messages_control]
+disable = "C0115, R0903, C0116, R1734, R1735, E0401, E0611, R0913, R0902, W2301"
+
+
+[tool.pylint.format]
+max-line-length = "88"
+
+
+[tool.black]
+include = "shroombot"
+
+
+# At the moment, this might break the CI
+# + In general, pyright and env are to be configured by user
+# [tool.pyright]
+# include = ["shroombot"]
+# venvPath = "."
+# venv = ".venv"
+
+
+[tool.coverage.run]
+source = ["shroombot"]
+
+
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+asyncio_mode = "strict"
+
+
+[tool.poetry.scripts]
+shroombot = 'shroombot.main:app'
