@@ -69,6 +69,16 @@ class CouldNotDecrypt(Exception):
     pass
 
 
+def is_file_empty(file_path: str) -> bool:
+    """Check if the file at the given path is empty."""
+    # Check if the file exists
+    if not os.path.isfile(file_path):
+        raise FileNotFoundError(f"The file at path '{file_path}' does not exist.")
+
+    # Check if the file is empty
+    return os.stat(file_path).st_size == 0
+
+
 @dataclass
 class Anonymizer:
     """
@@ -88,18 +98,19 @@ class Anonymizer:
         chat_x_topic = dict()
 
         if os.path.exists(file_path):
-            try:
-                data = await asyncio.to_thread(
-                    load_encrypted_json_file, file_path, encryption_key
-                )
-            except (InvalidToken, ValueError) as exc:
-                raise CouldNotDecrypt() from exc
+            if not is_file_empty(file_path):
+                try:
+                    data = await asyncio.to_thread(
+                        load_encrypted_json_file, file_path, encryption_key
+                    )
+                except (InvalidToken, ValueError) as exc:
+                    raise CouldNotDecrypt() from exc
 
-            data = EncryptedData.model_validate(data)
+                data = EncryptedData.model_validate(data)
 
-            for mapping in data.mappings:
-                topic_x_chat[mapping.topic_id] = mapping.chat_id
-                chat_x_topic[mapping.chat_id] = mapping.topic_id
+                for mapping in data.mappings:
+                    topic_x_chat[mapping.topic_id] = mapping.chat_id
+                    chat_x_topic[mapping.chat_id] = mapping.topic_id
 
         return Anonymizer(
             topic_x_chat=topic_x_chat,
