@@ -13,7 +13,6 @@ Implementation of the application CLI and logging setup
 import logging
 
 import typer
-from aiotdlib.api import MessageForumTopicCreated, MessageForumTopicIsHiddenToggled
 
 logger = logging.getLogger(__name__)
 
@@ -34,21 +33,27 @@ def run(  # pylint: disable=too-many-locals
     import asyncio
     import base64
     import logging.config as logging_config
-    from uuid import uuid4
 
-    from aiotdlib.api import MessageText, UpdateNewMessage
+    from aiotdlib.api import (
+        MessageForumTopicCreated,
+        MessageForumTopicIsHiddenToggled,
+        MessageText,
+        UpdateNewMessage,
+    )
     from aiotdlib.api.api import API
     from aiotdlib.client import Client
 
     from shroombot.anonymizer import Anonymizer
-    from shroombot.server import NameRandomizer, process_incomming_message
+    from shroombot.server import process_incomming_message
+    from shroombot.shroomgen import ShroomNameRandomizer, default_shroom_names
     from shroombot.telegram import LiveTelegramApi, get_chat_id
 
     from . import server
 
-    class DefaultNameRandomizer(NameRandomizer):
-        def get_random_topic_name(self) -> str:
-            return str(uuid4())[:5]
+    randomizer = ShroomNameRandomizer(default_shroom_names())
+
+    for _ in range(10):
+        print(randomizer.get_random_topic_name())
 
     # Configure logging
     logging_config.dictConfig(_get_logging_config(logging.INFO, formatter))
@@ -68,7 +73,7 @@ def run(  # pylint: disable=too-many-locals
             server_data = server.ServerData(
                 telegram=LiveTelegramApi(client),
                 anonymizer=anonymizer,
-                randomizer=DefaultNameRandomizer(),
+                randomizer=randomizer,
                 admin_chat_id=admin_chat_id,
             )
 
