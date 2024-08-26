@@ -11,6 +11,7 @@ Implementation of the application CLI and logging setup
 
 
 import logging
+from pathlib import Path
 
 import typer
 from aiotdlib.api import MessageDocument, MessagePhoto
@@ -26,6 +27,7 @@ app = typer.Typer()
 @app.command()
 def run(  # pylint: disable=too-many-locals
     chat_mapping_file: str,
+    files_dir: str,
     api_id: int = typer.Argument(..., envvar="API_ID"),
     api_hash: str = typer.Argument(..., envvar="API_HASH"),
     bot_token: str = typer.Argument(..., envvar="BOT_TOKEN"),
@@ -63,6 +65,7 @@ def run(  # pylint: disable=too-many-locals
             api_id=api_id,
             api_hash=api_hash,
             bot_token=bot_token,
+            files_directory=Path(files_dir),
         )
 
         anonymizer = await Anonymizer.from_file(

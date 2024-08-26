@@ -27,14 +27,14 @@ if [ -z "$ENCRYPTION_KEY" ]; then
     exit 1
 fi
 
-if [ -z "$MAPPING_BIN_PATH" ]; then
-    echo "environment variable MAPPING_BIN_PATH not found" 1>&2
-    exit 1
+
+if [ ! -f "$(pwd)/mapping.bin" ]; then
+    touch "$(pwd)/mapping.bin"
 fi
 
 
-if [ ! -f "$MAPPING_BIN_PATH" ]; then
-    touch "$MAPPING_BIN_PATH"
+if [ ! -f "$(pwd)/.aiotdlib" ]; then
+    mkdir "$(pwd)/.aiotdlib"
 fi
 
 
@@ -50,6 +50,7 @@ docker run -d \
     -e BOT_TOKEN="${BOT_TOKEN}" \
     -e ADMIN_CHAT="${ADMIN_CHAT}" \
     -e ENCRYPTION_KEY="${ENCRYPTION_KEY}" \
-    -v "${MAPPING_BIN_PATH}:/mapping.bin" \
+    -v "$(pwd)/mapping.bin:/mapping.bin" \
+    -v "$(pwd)/.aiotdlib:/.aiotdlib" \
     --name shroombot shroombot \
-    /mapping.bin
+    /mapping.bin /.aiotdlib
