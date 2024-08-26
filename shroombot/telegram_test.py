@@ -10,6 +10,8 @@ import os
 
 import pytest
 
+from shroombot.server import MyTextMessage
+
 
 @pytest.mark.skip
 @pytest.mark.asyncio
@@ -27,8 +29,10 @@ async def test_telegram_api():
 
         admin_chat = await get_chat_id(client, "meanddadya")
 
-        await telegram.send_message(admin_chat, "Hello, world")
+        await telegram.send_message(admin_chat, MyTextMessage("Hello, world"))
 
         topic_id = await telegram.create_topic(admin_chat, "Test topic")
 
-        await telegram.send_topic_message(admin_chat, topic_id, "Test message")
+        await telegram.send_topic_message(
+            admin_chat, topic_id, MyTextMessage("Test message")
+        )

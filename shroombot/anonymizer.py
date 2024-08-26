@@ -128,9 +128,6 @@ class Anonymizer:
         return self.chat_x_topic.get(chat_id)
 
     async def register_chat_topic_link(self, chat_id: int, topic_id: int):
-        assert chat_id not in self.chat_x_topic
-        assert topic_id not in self.topic_x_chat
-
         async with self.lock:
             self.chat_x_topic[chat_id] = topic_id
             self.topic_x_chat[topic_id] = chat_id

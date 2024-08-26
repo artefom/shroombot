@@ -2,15 +2,66 @@
 Connection to the telegram service
 """
 
-from aiotdlib.api import FormattedText, ForumTopicIcon, InputMessageText
+from aiotdlib.api import (
+    FormattedText,
+    ForumTopicIcon,
+    InputFileRemote,
+    InputMessageDocument,
+    InputMessagePhoto,
+    InputMessageText,
+    TextEntity,
+)
 from aiotdlib.client import Client
 
-from shroombot.server import TelegramApi
+from shroombot.server import (
+    MyDocumentMessage,
+    MyMessageType,
+    MyPhotoMessage,
+    MyTextMessage,
+    TelegramApi,
+)
 
 
 async def get_chat_id(client: Client, username: str) -> int:
     chat = await client.api.search_public_chat(username)
     return chat.id
+
+
+def _as_fmt(text: str, entities: list[TextEntity]) -> FormattedText:
+    return FormattedText(
+        text=text, entities=entities
+    )  # pyright: ignore[reportCallIssue]
+
+
+def _as_maybe_fmt(text: str | None) -> FormattedText | None:
+    if text is None:
+        return None
+    return FormattedText(text=text, entities=[])  # pyright: ignore[reportCallIssue]
+
+
+def message_to_content(  # pylint: disable=inconsistent-return-statements
+    message: MyMessageType,
+) -> InputMessageText | InputMessagePhoto | InputMessageDocument:
+    if isinstance(message, MyTextMessage):
+        return InputMessageText(
+            text=_as_fmt(message.text, message.entities)
+        )  # pyright: ignore[reportCallIssue]
+
+    if isinstance(message, MyPhotoMessage):
+        return InputMessagePhoto(
+            photo=InputFileRemote(id=message.id),  # pyright: ignore[reportCallIssue]
+            width=40,
+            height=40,
+            added_sticker_file_ids=[],
+            caption=_as_maybe_fmt(message.caption),
+        )  # pyright: ignore[reportCallIssue]
+
+    if isinstance(message, MyDocumentMessage):
+        return InputMessageDocument(
+            document=InputFileRemote(id=message.id),  # pyright: ignore[reportCallIssue]
+            disable_content_type_detection=True,
+            caption=_as_maybe_fmt(message.caption),
+        )  # pyright: ignore[reportCallIssue]
 
 
 class LiveTelegramApi(TelegramApi):
@@ -20,40 +71,29 @@ class LiveTelegramApi(TelegramApi):
     async def send_message(
         self,
         chat_id: int,
-        text: str,
+        message: MyMessageType,
     ):
         """
         Send message to specific chat and thread
         """
-        content = InputMessageText(
-            text=FormattedText(
-                text=text,
-                entities=[],
-            )  # pyright: ignore[reportCallIssue]
-        )
+
         await self.client.api.send_message(
             chat_id,
-            content,
+            message_to_content(message),
         )
 
     async def send_topic_message(
         self,
         chat_id: int,
         topic_id: int,
-        text: str,
+        message: MyMessageType,
     ):
         """
         Send message to specific chat and thread
         """
-        content = InputMessageText(
-            text=FormattedText(
-                text=text,
-                entities=[],
-            )  # pyright: ignore[reportCallIssue]
-        )
         await self.client.api.send_message(
             chat_id,
-            content,
+            message_to_content(message),
             message_thread_id=topic_id,
         )
 

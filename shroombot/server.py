@@ -5,11 +5,34 @@ Implementation of the core logic
 
 import logging
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+from aiotdlib.api import TextEntity
 
 from shroombot.anonymizer import Anonymizer
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class MyTextMessage:
+    text: str
+    entities: list[TextEntity] = field(default_factory=list)
+
+
+@dataclass
+class MyPhotoMessage:
+    id: str
+    caption: str | None
+
+
+@dataclass
+class MyDocumentMessage:
+    id: str
+    caption: str | None
+
+
+MyMessageType = MyTextMessage | MyPhotoMessage | MyDocumentMessage
 
 
 class TelegramApi(ABC):
@@ -22,7 +45,7 @@ class TelegramApi(ABC):
     async def send_message(
         self,
         chat_id: int,
-        text: str,
+        message: MyMessageType,
     ):
         """
         Send message to specific chat and thread
@@ -34,7 +57,7 @@ class TelegramApi(ABC):
         self,
         chat_id: int,
         topic_id: int,
-        text: str,
+        message: MyMessageType,
     ):
         """
         Send message to specific chat and thread
@@ -69,7 +92,9 @@ class ServerData:
     admin_chat_id: int
 
 
-async def _process_admin_message(data: ServerData, thread_id: int, message: str):
+async def _process_admin_message(
+    data: ServerData, thread_id: int, message: MyMessageType
+):
     """
     Function that handles messages sent by admins
     """
@@ -83,7 +108,7 @@ async def _process_admin_message(data: ServerData, thread_id: int, message: str)
     await data.telegram.send_message(chat_id, message)
 
 
-async def _process_user_message(data: ServerData, chat_id: int, message: str):
+async def _process_user_message(data: ServerData, chat_id: int, message: MyMessageType):
     """
     Function that handles messages sent by users
     """
@@ -100,7 +125,7 @@ async def _process_user_message(data: ServerData, chat_id: int, message: str):
 
 
 async def process_incomming_message(
-    data: ServerData, chat_id: int, thread_id: int, message: str
+    data: ServerData, chat_id: int, thread_id: int, message: MyMessageType
 ):
     if chat_id == data.admin_chat_id:
         await _process_admin_message(data, thread_id, message)

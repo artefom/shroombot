@@ -10,6 +10,8 @@ from cryptography.fernet import Fernet
 
 from shroombot.anonymizer import Anonymizer
 from shroombot.server import (
+    MyMessageType,
+    MyTextMessage,
     NameRandomizer,
     ServerData,
     TelegramApi,
@@ -27,23 +29,25 @@ class MockTelegramApi(TelegramApi):
     async def send_message(
         self,
         chat_id: int,
-        text: str,
+        message: MyMessageType,
     ):
         """
         Send message to specific chat and thread
         """
-        self.chats[chat_id][0].append(text)
+        assert isinstance(message, MyTextMessage)
+        self.chats[chat_id][0].append(message.text)
 
     async def send_topic_message(
         self,
         chat_id: int,
         topic_id: int,
-        text: str,
+        message: MyMessageType,
     ):
         """
         Send message to specific chat and thread
         """
-        self.chats[chat_id][topic_id].append(text)
+        assert isinstance(message, MyTextMessage)
+        self.chats[chat_id][topic_id].append(message.text)
 
     async def create_topic(self, chat_id: int, title: str) -> int:
         """
@@ -95,7 +99,9 @@ async def test_server_default():
 
             chats[chat][topic].append(message)
 
-            await process_incomming_message(server_data, chat, topic, message)
+            await process_incomming_message(
+                server_data, chat, topic, MyTextMessage(message)
+            )
 
         # Interaction with user 1
         await send_message(1, "Hey! I need help!")

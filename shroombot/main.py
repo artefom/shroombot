@@ -13,6 +13,9 @@ Implementation of the application CLI and logging setup
 import logging
 
 import typer
+from aiotdlib.api import MessageDocument, MessagePhoto
+
+from shroombot.server import MyDocumentMessage, MyPhotoMessage, MyTextMessage
 
 logger = logging.getLogger(__name__)
 
@@ -79,11 +82,25 @@ def run(  # pylint: disable=too-many-locals
             content = message.content
 
             if isinstance(content, MessageText):
-                text = content.text.text
+                content = MyTextMessage(
+                    text=content.text.text,
+                    entities=content.text.entities,
+                )
             elif isinstance(content, MessageForumTopicIsHiddenToggled):
                 return
             elif isinstance(content, MessageForumTopicCreated):
                 return
+            elif isinstance(content, MessageDocument):
+                content = MyDocumentMessage(
+                    id=content.document.document.remote.id,
+                    caption=content.caption.text,
+                )
+            elif isinstance(content, MessagePhoto):
+                logger.info("Received photo: %s", content.json())
+                content = MyPhotoMessage(
+                    id=content.photo.sizes[0].photo.remote.id,
+                    caption=content.caption.text,
+                )
             else:
                 logger.warning(
                     "Encountered unsupported message type %s. Chat %d thread %d",
@@ -91,13 +108,15 @@ def run(  # pylint: disable=too-many-locals
                     message.chat_id,
                     message.message_thread_id,
                 )
-                text = "<unsupported message>"
+                content = MyTextMessage(
+                    f"<unsupported type {content.__class__.__name__}>",
+                )
 
             await process_incomming_message(
                 server_data,
                 message.chat_id,
                 message.message_thread_id,
-                text,
+                content,
             )
 
         client.add_event_handler(message_handler, API.Types.UPDATE_NEW_MESSAGE)
