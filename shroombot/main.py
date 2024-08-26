@@ -52,59 +52,60 @@ def run(  # pylint: disable=too-many-locals
 
     randomizer = ShroomNameRandomizer(default_shroom_names())
 
-    for _ in range(10):
-        print(randomizer.get_random_topic_name())
-
     # Configure logging
     logging_config.dictConfig(_get_logging_config(logging.INFO, formatter))
 
     async def _entry():
+        client = Client(
+            api_id=api_id,
+            api_hash=api_hash,
+            bot_token=bot_token,
+        )
+
         anonymizer = await Anonymizer.from_file(
             chat_mapping_file, base64.b64decode(encryption_key)
         )
 
-        async with Client(
-            api_id=api_id,
-            api_hash=api_hash,
-            bot_token=bot_token,
-        ) as client:
-            admin_chat_id = await get_chat_id(client, admin_chat)
+        server_data = server.ServerData(
+            telegram=LiveTelegramApi(client),
+            anonymizer=anonymizer,
+            randomizer=randomizer,
+            admin_chat_id=-1002232979097,
+        )
 
-            server_data = server.ServerData(
-                telegram=LiveTelegramApi(client),
-                anonymizer=anonymizer,
-                randomizer=randomizer,
-                admin_chat_id=admin_chat_id,
-            )
+        async def message_handler(_, update: UpdateNewMessage):
+            message = update.message
 
-            async def message_handler(_, update: UpdateNewMessage):
-                message = update.message
+            content = message.content
 
-                content = message.content
-
-                if isinstance(content, MessageText):
-                    text = content.text.text
-                elif isinstance(content, MessageForumTopicIsHiddenToggled):
-                    return
-                elif isinstance(content, MessageForumTopicCreated):
-                    return
-                else:
-                    logger.warning(
-                        "Encountered unsupported message type %s. Chat %d thread %d",
-                        content.__class__.__name__,
-                        message.chat_id,
-                        message.message_thread_id,
-                    )
-                    text = "<unsupported message>"
-
-                await process_incomming_message(
-                    server_data,
+            if isinstance(content, MessageText):
+                text = content.text.text
+            elif isinstance(content, MessageForumTopicIsHiddenToggled):
+                return
+            elif isinstance(content, MessageForumTopicCreated):
+                return
+            else:
+                logger.warning(
+                    "Encountered unsupported message type %s. Chat %d thread %d",
+                    content.__class__.__name__,
                     message.chat_id,
                     message.message_thread_id,
-                    text,
                 )
+                text = "<unsupported message>"
 
-            client.add_event_handler(message_handler, API.Types.UPDATE_NEW_MESSAGE)
+            await process_incomming_message(
+                server_data,
+                message.chat_id,
+                message.message_thread_id,
+                text,
+            )
+
+        client.add_event_handler(message_handler, API.Types.UPDATE_NEW_MESSAGE)
+
+        async with client:
+            # Check that chat id matches
+            admin_chat_id = await get_chat_id(client, admin_chat)
+            assert admin_chat_id == server_data.admin_chat_id, admin_chat
 
             while True:
                 await asyncio.sleep(1)
