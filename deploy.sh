@@ -33,7 +33,7 @@ if [ ! -f "$(pwd)/mapping.bin" ]; then
 fi
 
 
-if [ ! -f "$(pwd)/.aiotdlib" ]; then
+if [ ! -d "$(pwd)/.aiotdlib" ]; then
     mkdir "$(pwd)/.aiotdlib"
 fi
 
