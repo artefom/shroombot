@@ -10,18 +10,12 @@ from fastapi import FastAPI, Request
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import RedirectResponse
 from prometheus_client import Counter
-from uuid import uuid4
 from starlette_exporter import PrometheusMiddleware, handle_metrics
 
 logger = logging.getLogger(__name__)
 
 
-RESULT_COUNTER = Counter(
-    "num_results_shown", "Number of results shown to users", ("instance_id",)
-)
-
-# This needs to be unique on every deployment
-INSTANCE_ID = str(uuid4())[:8]
+RESULT_COUNTER = Counter("num_results_shown", "Number of results shown to users")
 
 
 def make_app(root_path: str):
@@ -67,7 +61,7 @@ def make_app(root_path: str):
         """
         Increments counter of test results shown
         """
-        RESULT_COUNTER.labels(INSTANCE_ID).inc()
+        RESULT_COUNTER.inc()
 
         return "OK"
 
