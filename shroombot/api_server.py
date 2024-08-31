@@ -24,6 +24,9 @@ RESULT_COUNTER = Counter(
 # This needs to be unique on every deployment
 INSTANCE_ID = str(uuid4())[:8]
 
+# Reset so it shows 0
+RESULT_COUNTER.labels(INSTANCE_ID).reset()
+
 
 def make_app(root_path: str):
     app = FastAPI(root_path=root_path)
@@ -108,8 +111,5 @@ async def run_api_server(bind: str, root_path: str):
     config = uvicorn.Config(app, host, port, log_config=None, access_log=False)
     api_server = uvicorn.Server(config)
     logging.info("Serving on http://%s:%s", host, port)
-
-    # Reset so it shows 0
-    RESULT_COUNTER.labels(INSTANCE_ID).reset()
 
     await api_server.serve()
