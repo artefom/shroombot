@@ -10,13 +10,18 @@ from fastapi import FastAPI, Request
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import RedirectResponse
 from prometheus_client import Counter
+from uuid import uuid4
 from starlette_exporter import PrometheusMiddleware, handle_metrics
 
 logger = logging.getLogger(__name__)
 
-TEST_COUNTER = Counter("test_counter", "Some to test")
 
-RESULT_COUNTER = Counter("num_results_shown", "Number of results shown to users")
+RESULT_COUNTER = Counter(
+    "num_results_shown", "Number of results shown to users", ("instance_id",)
+)
+
+# This needs to be unique on every deployment
+INSTANCE_ID = str(uuid4())[:8]
 
 
 def make_app(root_path: str):
@@ -55,7 +60,6 @@ def make_app(root_path: str):
     async def health() -> str:
         """Checks health of application, including database and all systems"""
 
-        TEST_COUNTER.inc(1)
         return "OK"
 
     @app.post("/record-result-stats")
@@ -63,7 +67,7 @@ def make_app(root_path: str):
         """
         Increments counter of test results shown
         """
-        RESULT_COUNTER.inc()
+        RESULT_COUNTER.labels(INSTANCE_ID).inc()
 
         return "OK"
 
