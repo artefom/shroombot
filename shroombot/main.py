@@ -32,6 +32,8 @@ def run(  # pylint: disable=too-many-locals
     api_hash: str = typer.Argument(..., envvar="API_HASH"),
     bot_token: str = typer.Argument(..., envvar="BOT_TOKEN"),
     admin_chat: str = typer.Argument(..., envvar="ADMIN_CHAT"),
+    bind: str = typer.Option(..., envvar="BOT_API_SERVER_BIND"),
+    root_path: str = typer.Option(..., envvar="BOT_API_ROOT_PATH"),
     encryption_key: str = typer.Argument(..., envvar="ENCRYPTION_KEY"),
     formatter: str = typer.Option("standard", envvar="LOG_FORMATTER"),
 ):
@@ -53,7 +55,7 @@ def run(  # pylint: disable=too-many-locals
     from shroombot.shroomgen import ShroomNameRandomizer, default_shroom_names
     from shroombot.telegram import LiveTelegramApi, get_chat_id
 
-    from . import server
+    from . import api_server, server
 
     randomizer = ShroomNameRandomizer(default_shroom_names())
 
@@ -128,6 +130,8 @@ def run(  # pylint: disable=too-many-locals
             # Check that chat id matches
             admin_chat_id = await get_chat_id(client, admin_chat)
             assert admin_chat_id == server_data.admin_chat_id, admin_chat
+
+            await api_server.run_api_server(bind, root_path)
 
             while True:
                 await asyncio.sleep(1)
