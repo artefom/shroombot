@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 TEST_COUNTER = Counter("test_counter", "Some to test")
 
+RESULT_COUNTER = Counter("num_results_shown", "Number of results shown to users")
+
 
 def make_app(root_path: str):
     app = FastAPI(root_path=root_path)
@@ -54,6 +56,15 @@ def make_app(root_path: str):
         """Checks health of application, including database and all systems"""
 
         TEST_COUNTER.inc(1)
+        return "OK"
+
+    @app.post("/record-result-stats")
+    async def record_result_stats() -> str:
+        """
+        Increments counter of test results shown
+        """
+        RESULT_COUNTER.inc()
+
         return "OK"
 
     @app.get("/", include_in_schema=False)
