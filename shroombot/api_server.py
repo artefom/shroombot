@@ -20,8 +20,6 @@ RESULT_COUNTER = Counter(
     "num_results_shown", "Number of results shown to users", ("instance_id",)
 )
 
-# Reset so it shows 0
-RESULT_COUNTER.reset()
 
 # This needs to be unique on every deployment
 INSTANCE_ID = str(uuid4())[:8]
@@ -110,4 +108,8 @@ async def run_api_server(bind: str, root_path: str):
     config = uvicorn.Config(app, host, port, log_config=None, access_log=False)
     api_server = uvicorn.Server(config)
     logging.info("Serving on http://%s:%s", host, port)
+
+    # Reset so it shows 0
+    RESULT_COUNTER.labels(INSTANCE_ID).reset()
+
     await api_server.serve()

@@ -33,7 +33,7 @@ def run(  # pylint: disable=too-many-locals
     bot_token: str = typer.Argument(..., envvar="BOT_TOKEN"),
     admin_chat: str = typer.Argument(..., envvar="ADMIN_CHAT"),
     bind: str = typer.Option(..., envvar="BOT_API_SERVER_BIND"),
-    root_path: str = typer.Option(..., envvar="BOT_API_ROOT_PATH"),
+    root_path: str = typer.Option("", envvar="BOT_API_ROOT_PATH"),
     encryption_key: str = typer.Argument(..., envvar="ENCRYPTION_KEY"),
     formatter: str = typer.Option("standard", envvar="LOG_FORMATTER"),
 ):
