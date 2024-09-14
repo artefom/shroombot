@@ -135,7 +135,8 @@ async def _process_user_message(data: ServerData, chat_id: int, message: MyMessa
                 chat_id,
                 MyTextMessage(
                     "Привет! У бота нет команд, он просто"
-                    " передает сообщения анонимно. Пишите:)",
+                    " передает сообщения анонимно. Пишите,"
+                    " мы ответим вам так быстро, как сможем :)",
                 ),
             )
 
