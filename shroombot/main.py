@@ -112,7 +112,7 @@ def run(  # pylint: disable=too-many-locals
                 )
             elif isinstance(content, MessageSticker):
                 content = MyStickerMessage(
-                    id=content.sticker.sticker.id,
+                    id=content.sticker.sticker.remote.id,
                     emoji=content.sticker.emoji,
                 )
             else:
