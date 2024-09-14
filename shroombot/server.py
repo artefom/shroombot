@@ -27,12 +27,18 @@ class MyPhotoMessage:
 
 
 @dataclass
+class MyStickerMessage:
+    id: str
+    emoji: str
+
+
+@dataclass
 class MyDocumentMessage:
     id: str
     caption: str | None
 
 
-MyMessageType = MyTextMessage | MyPhotoMessage | MyDocumentMessage
+MyMessageType = MyTextMessage | MyPhotoMessage | MyDocumentMessage | MyStickerMessage
 
 
 class TelegramApi(ABC):
@@ -123,11 +129,31 @@ async def _process_user_message(data: ServerData, chat_id: int, message: MyMessa
 
     await data.telegram.send_topic_message(data.admin_chat_id, topic_id, message)
 
+    if isinstance(message, MyTextMessage):
+        if "/start" in message.text:
+            await data.telegram.send_message(
+                chat_id,
+                MyTextMessage(
+                    "У бота нет команд, он просто"
+                    " передает сообщения анонимно. Пишите:)",
+                ),
+            )
+
+            await data.telegram.send_topic_message(
+                data.admin_chat_id,
+                topic_id,
+                MyTextMessage("Приветственное сообщение показано"),
+            )
+
 
 async def process_incomming_message(
     data: ServerData, chat_id: int, thread_id: int, message: MyMessageType
 ):
-    if chat_id == data.admin_chat_id:
-        await _process_admin_message(data, thread_id, message)
-    else:
-        await _process_user_message(data, chat_id, message)
+    try:
+        if chat_id == data.admin_chat_id:
+            await _process_admin_message(data, thread_id, message)
+        else:
+            await _process_user_message(data, chat_id, message)
+    except Exception:
+        logger.exception("Error during processing incomming message")
+        raise

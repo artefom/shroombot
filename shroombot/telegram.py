@@ -8,6 +8,7 @@ from aiotdlib.api import (
     InputFileRemote,
     InputMessageDocument,
     InputMessagePhoto,
+    InputMessageSticker,
     InputMessageText,
     TextEntity,
 )
@@ -17,6 +18,7 @@ from shroombot.server import (
     MyDocumentMessage,
     MyMessageType,
     MyPhotoMessage,
+    MyStickerMessage,
     MyTextMessage,
     TelegramApi,
 )
@@ -41,7 +43,7 @@ def _as_maybe_fmt(text: str | None) -> FormattedText | None:
 
 def message_to_content(  # pylint: disable=inconsistent-return-statements
     message: MyMessageType,
-) -> InputMessageText | InputMessagePhoto | InputMessageDocument:
+) -> InputMessageText | InputMessagePhoto | InputMessageDocument | InputMessageSticker:
     if isinstance(message, MyTextMessage):
         return InputMessageText(
             text=_as_fmt(message.text, message.entities)
@@ -62,6 +64,13 @@ def message_to_content(  # pylint: disable=inconsistent-return-statements
             disable_content_type_detection=True,
             caption=_as_maybe_fmt(message.caption),
         )  # pyright: ignore[reportCallIssue]
+    if isinstance(message, MyStickerMessage):
+        return InputMessageSticker(
+            sticker=InputFileRemote(id=message.id),  # pyright: ignore[reportCallIssue]
+            width=40,
+            height=40,
+            emoji=message.emoji,
+        )
 
 
 class LiveTelegramApi(TelegramApi):

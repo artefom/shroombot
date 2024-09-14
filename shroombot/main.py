@@ -14,9 +14,14 @@ import logging
 from pathlib import Path
 
 import typer
-from aiotdlib.api import MessageDocument, MessagePhoto
+from aiotdlib.api import MessageDocument, MessagePhoto, MessageSticker
 
-from shroombot.server import MyDocumentMessage, MyPhotoMessage, MyTextMessage
+from shroombot.server import (
+    MyDocumentMessage,
+    MyPhotoMessage,
+    MyStickerMessage,
+    MyTextMessage,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -101,10 +106,14 @@ def run(  # pylint: disable=too-many-locals
                     caption=content.caption.text,
                 )
             elif isinstance(content, MessagePhoto):
-                logger.info("Received photo: %s", content.json())
                 content = MyPhotoMessage(
                     id=content.photo.sizes[0].photo.remote.id,
                     caption=content.caption.text,
+                )
+            elif isinstance(content, MessageSticker):
+                content = MyStickerMessage(
+                    id=content.sticker.sticker.id,
+                    emoji=content.sticker.emoji,
                 )
             else:
                 logger.warning(
