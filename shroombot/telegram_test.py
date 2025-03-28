@@ -27,7 +27,7 @@ async def test_telegram_api():
     ) as client:
         telegram = LiveTelegramApi(client)
 
-        admin_chat = await get_chat_id(client, "meandadya")
+        admin_chat = await get_chat_id(client, "gribni_tsa_bot")
 
         print(f"Admin chat: {admin_chat}")
 
