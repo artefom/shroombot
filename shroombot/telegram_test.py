@@ -13,7 +13,7 @@ import pytest
 from shroombot.server import MyTextMessage
 
 
-# @pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_telegram_api():
     from aiotdlib.client import Client
