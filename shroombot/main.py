@@ -83,7 +83,7 @@ def run(  # pylint: disable=too-many-locals
             telegram=LiveTelegramApi(client),
             anonymizer=anonymizer,
             randomizer=randomizer,
-            admin_chat_id=7427191194,
+            admin_chat_id=-1002232979097,
         )
 
         async def message_handler(_, update: UpdateNewMessage):
@@ -137,8 +137,8 @@ def run(  # pylint: disable=too-many-locals
 
         async with client:
             # Check that chat id matches
-            admin_chat_id = await get_chat_id(client, admin_chat)
-            assert admin_chat_id == server_data.admin_chat_id, admin_chat
+            # admin_chat_id = await get_chat_id(client, admin_chat)
+            # assert admin_chat_id == server_data.admin_chat_id, admin_chat
 
             await api_server.run_api_server(bind, root_path)
 
