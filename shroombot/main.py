@@ -79,11 +79,15 @@ def run(  # pylint: disable=too-many-locals
             chat_mapping_file, base64.b64decode(encryption_key)
         )
 
+        admin_chat_id = await get_chat_id(client, admin_chat)
+
+        logger.info("Admin chat: %s, id: %d", admin_chat_id, admin_chat)
+
         server_data = server.ServerData(
             telegram=LiveTelegramApi(client),
             anonymizer=anonymizer,
             randomizer=randomizer,
-            admin_chat_id=-1002232979097,
+            admin_chat_id=admin_chat_id,
         )
 
         async def message_handler(_, update: UpdateNewMessage):
@@ -136,10 +140,6 @@ def run(  # pylint: disable=too-many-locals
         client.add_event_handler(message_handler, API.Types.UPDATE_NEW_MESSAGE)
 
         async with client:
-            # Check that chat id matches
-            admin_chat_id = await get_chat_id(client, admin_chat)
-            assert admin_chat_id == server_data.admin_chat_id, admin_chat
-
             await api_server.run_api_server(bind, root_path)
 
             while True:
