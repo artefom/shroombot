@@ -78,6 +78,8 @@ def run(  # pylint: disable=too-many-locals
             chat_mapping_file, base64.b64decode(encryption_key)
         )
 
+        print(anonymizer.list_all_chats())
+
         server_data = server.ServerData(
             telegram=LiveTelegramApi(client),
             anonymizer=anonymizer,

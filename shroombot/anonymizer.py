@@ -92,6 +92,15 @@ class Anonymizer:
     file_path: str
     encryption_key: bytes
 
+    def list_all_chats(self) -> list[int]:
+        """
+        Get list of all chats
+        """
+        all_chats = set()
+        all_chats.update(self.chat_x_topic.keys())
+        all_chats.update(self.topic_x_chat.values())
+        return sorted(all_chats)
+
     @staticmethod
     async def from_file(file_path: str, encryption_key: bytes) -> "Anonymizer":
         topic_x_chat = dict()
