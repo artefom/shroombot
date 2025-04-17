@@ -99,26 +99,11 @@ class LiveTelegramApi(TelegramApi):
         """
         Send message to specific chat and thread
         """
-
-        try:
-            await self.client.api.send_message(
-                chat_id,
-                message_to_content(message),
-                message_thread_id=topic_id,
-            )
-
-            forum_topic = await self.client.api.get_forum_topic(chat_id, topic_id)
-
-            logger.warning("Received forum topic: %s", forum_topic)
-
-        except Exception:
-            logger.warning("Could not send topic message. Checking if topic exists")
-
-            # Raises
-            # aiotdlib.api.errors.error.BadRequest: [Error 400] BOT_METHOD_INVALID
-            forum_topic = await self.client.api.get_forum_topic(chat_id, topic_id)
-
-            logger.warning("Received forum topic: %s", forum_topic)
+        await self.client.api.send_message(
+            chat_id,
+            message_to_content(message),
+            message_thread_id=topic_id,
+        )
 
     async def create_topic(self, chat_id: int, title: str) -> int:
         """
