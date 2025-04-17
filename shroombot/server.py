@@ -128,7 +128,6 @@ async def _process_could_not_send_message(
     data: ServerData, chat_id: int, message: MyMessageType
 ):
     topic_id = await _init_topic(data, chat_id)
-    await data.telegram.send_topic_message(data.admin_chat_id, topic_id, message)
 
     await data.telegram.send_message(
         chat_id,
@@ -146,6 +145,8 @@ async def _process_could_not_send_message(
             " и посылаем новые сообщения юзера сюда"
         ),
     )
+
+    await data.telegram.send_topic_message(data.admin_chat_id, topic_id, message)
 
 
 async def _process_user_message(data: ServerData, chat_id: int, message: MyMessageType):
