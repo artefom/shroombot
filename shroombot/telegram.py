@@ -23,6 +23,10 @@ from shroombot.server import (
     TelegramApi,
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def _as_fmt(text: str, entities: list[TextEntity]) -> FormattedText:
     return FormattedText(
@@ -95,11 +99,18 @@ class LiveTelegramApi(TelegramApi):
         """
         Send message to specific chat and thread
         """
-        await self.client.api.send_message(
-            chat_id,
-            message_to_content(message),
-            message_thread_id=topic_id,
-        )
+
+        try:
+            await self.client.api.send_message(
+                chat_id,
+                message_to_content(message),
+                message_thread_id=topic_id,
+            )
+        except Exception:
+            logger.warning("Could not send topic message. Checking if topic exists")
+            forum_topic = await self.client.api.get_forum_topic(chat_id, topic_id)
+
+            logger.warning("Received forum topic: %s", forum_topic)
 
     async def create_topic(self, chat_id: int, title: str) -> int:
         """
