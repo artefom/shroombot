@@ -2,6 +2,8 @@
 Connection to the telegram service
 """
 
+import logging
+
 from aiotdlib.api import (
     FormattedText,
     ForumTopicIcon,
@@ -22,8 +24,6 @@ from shroombot.server import (
     MyTextMessage,
     TelegramApi,
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 

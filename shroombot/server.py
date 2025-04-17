@@ -114,6 +114,40 @@ async def _process_admin_message(
     await data.telegram.send_message(chat_id, message)
 
 
+async def _init_topic(data: ServerData, chat_id: int) -> int:
+    topic_id = await data.telegram.create_topic(
+        data.admin_chat_id, data.randomizer.get_random_topic_name()
+    )
+
+    await data.anonymizer.register_chat_topic_link(chat_id, topic_id)
+
+    return topic_id
+
+
+async def _process_could_not_send_message(
+    data: ServerData, chat_id: int, message: MyMessageType
+):
+    topic_id = await _init_topic(data, chat_id)
+    await data.telegram.send_topic_message(data.admin_chat_id, topic_id, message)
+
+    await data.telegram.send_message(
+        chat_id,
+        MyTextMessage(
+            "Кажется что-то пошло не так и ваши новые сообщения будут"
+            " отображаться как от нового пользователя у админов грибницы",
+        ),
+    )
+
+    await data.telegram.send_topic_message(
+        data.admin_chat_id,
+        topic_id,
+        MyTextMessage(
+            "Не получилось послать сообщение в старый топик, поэтому мы создали новый"
+            " и посылаем новые сообщения юзера сюда"
+        ),
+    )
+
+
 async def _process_user_message(data: ServerData, chat_id: int, message: MyMessageType):
     """
     Function that handles messages sent by users
@@ -124,13 +158,14 @@ async def _process_user_message(data: ServerData, chat_id: int, message: MyMessa
         topic_id = None
 
     if topic_id is None:
-        topic_id = await data.telegram.create_topic(
-            data.admin_chat_id, data.randomizer.get_random_topic_name()
-        )
+        topic_id = await _init_topic(data, chat_id)
 
-        await data.anonymizer.register_chat_topic_link(chat_id, topic_id)
+    try:
+        await data.telegram.send_topic_message(data.admin_chat_id, topic_id, message)
 
-    await data.telegram.send_topic_message(data.admin_chat_id, topic_id, message)
+    # The topic was deleted?
+    except Exception:  # pylint: disable=broad-exception-caught
+        await _process_could_not_send_message(data, chat_id, message)
 
     if isinstance(message, MyTextMessage) and "/start" in message.text:
         await data.telegram.send_message(
