@@ -12,6 +12,7 @@ Implementation of the application CLI and logging setup
 
 import logging
 from pathlib import Path
+from typing import Any
 
 import typer
 from aiotdlib.api import MessageDocument, MessagePhoto, MessageSticker
@@ -50,6 +51,7 @@ def run(  # pylint: disable=too-many-locals
         MessageForumTopicIsHiddenToggled,
         MessageText,
         UpdateNewMessage,
+        DeleteForumTopic,
     )
     from aiotdlib.api.api import API
     from aiotdlib.client import Client
@@ -87,6 +89,13 @@ def run(  # pylint: disable=too-many-locals
             # And from this addition event you can extract the chat id
             admin_chat_id=-1002232979097,
         )
+
+        async def any_handler(_, update: Any):
+            logger.warning(
+                "Received update %s",
+                update.__class__.__name__,
+                update,
+            )
 
         async def message_handler(_, update: UpdateNewMessage):
             message = update.message
@@ -136,6 +145,8 @@ def run(  # pylint: disable=too-many-locals
             )
 
         client.add_event_handler(message_handler, API.Types.UPDATE_NEW_MESSAGE)
+
+        client.add_event_handler(any_handler, API.Types.ANY)
 
         async with client:
             await api_server.run_api_server(bind, root_path)
