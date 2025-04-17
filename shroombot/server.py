@@ -120,6 +120,9 @@ async def _process_user_message(data: ServerData, chat_id: int, message: MyMessa
     """
     topic_id = data.anonymizer.get_topic_id(chat_id)
 
+    if isinstance(message, MyTextMessage) and "abobba" in message.text:
+        topic_id = None
+
     if topic_id is None:
         topic_id = await data.telegram.create_topic(
             data.admin_chat_id, data.randomizer.get_random_topic_name()
@@ -129,22 +132,21 @@ async def _process_user_message(data: ServerData, chat_id: int, message: MyMessa
 
     await data.telegram.send_topic_message(data.admin_chat_id, topic_id, message)
 
-    if isinstance(message, MyTextMessage):
-        if "/start" in message.text:
-            await data.telegram.send_message(
-                chat_id,
-                MyTextMessage(
-                    "Привет! У бота нет команд, он просто"
-                    " передает сообщения анонимно. Пишите,"
-                    " мы ответим вам так быстро, как сможем :)",
-                ),
-            )
+    if isinstance(message, MyTextMessage) and "/start" in message.text:
+        await data.telegram.send_message(
+            chat_id,
+            MyTextMessage(
+                "Привет! У бота нет команд, он просто"
+                " передает сообщения анонимно. Пишите,"
+                " мы ответим вам так быстро, как сможем :)",
+            ),
+        )
 
-            await data.telegram.send_topic_message(
-                data.admin_chat_id,
-                topic_id,
-                MyTextMessage("Приветственное сообщение показано"),
-            )
+        await data.telegram.send_topic_message(
+            data.admin_chat_id,
+            topic_id,
+            MyTextMessage("Приветственное сообщение показано"),
+        )
 
 
 async def process_incomming_message(
