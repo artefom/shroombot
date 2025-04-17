@@ -18,7 +18,7 @@ from shroombot.server import MyTextMessage
 async def test_telegram_api():
     from aiotdlib.client import Client
 
-    from .telegram import LiveTelegramApi, get_chat_id
+    from .telegram import LiveTelegramApi
 
     async with Client(
         api_id=int(os.environ["API_ID"]),
@@ -27,7 +27,13 @@ async def test_telegram_api():
     ) as client:
         telegram = LiveTelegramApi(client)
 
-        admin_chat = await get_chat_id(client, "gribni_tsa_bot")
+        # The admin chat id only can be fetched when you manually add bot to a chat.
+        # And from this addition event you can extract the chat id
+        admin_chat = -1002232979097
+
+        chat_info = await client.get_chat_info(admin_chat)
+
+        print(f"Chat info: {chat_info}")
 
         print(f"Admin chat: {admin_chat}")
 

@@ -24,11 +24,6 @@ from shroombot.server import (
 )
 
 
-async def get_chat_id(client: Client, username: str) -> int:
-    chat = await client.api.search_public_chat(username)
-    return chat.id
-
-
 def _as_fmt(text: str, entities: list[TextEntity]) -> FormattedText:
     return FormattedText(
         text=text, entities=entities

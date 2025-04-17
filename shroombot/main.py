@@ -36,7 +36,6 @@ def run(  # pylint: disable=too-many-locals
     api_id: int = typer.Argument(..., envvar="API_ID"),
     api_hash: str = typer.Argument(..., envvar="API_HASH"),
     bot_token: str = typer.Argument(..., envvar="BOT_TOKEN"),
-    admin_chat: str = typer.Argument(..., envvar="ADMIN_CHAT"),
     bind: str = typer.Option(..., envvar="BOT_API_SERVER_BIND"),
     root_path: str = typer.Option("", envvar="BOT_API_ROOT_PATH"),
     encryption_key: str = typer.Argument(..., envvar="ENCRYPTION_KEY"),
@@ -58,7 +57,7 @@ def run(  # pylint: disable=too-many-locals
     from shroombot.anonymizer import Anonymizer
     from shroombot.server import process_incomming_message
     from shroombot.shroomgen import ShroomNameRandomizer, default_shroom_names
-    from shroombot.telegram import LiveTelegramApi, get_chat_id
+    from shroombot.telegram import LiveTelegramApi
 
     from . import api_server, server
 
@@ -83,6 +82,9 @@ def run(  # pylint: disable=too-many-locals
             telegram=LiveTelegramApi(client),
             anonymizer=anonymizer,
             randomizer=randomizer,
+            # The admin chat id only can be fetched when you
+            # manually add bot to a chat.
+            # And from this addition event you can extract the chat id
             admin_chat_id=-1002232979097,
         )
 
@@ -136,10 +138,6 @@ def run(  # pylint: disable=too-many-locals
         client.add_event_handler(message_handler, API.Types.UPDATE_NEW_MESSAGE)
 
         async with client:
-            # Check that chat id matches
-            # admin_chat_id = await get_chat_id(client, admin_chat)
-            # assert admin_chat_id == server_data.admin_chat_id, admin_chat
-
             await api_server.run_api_server(bind, root_path)
 
             while True:
