@@ -242,7 +242,8 @@ async def test_ban_commands():
         # Should have sent message about no banned users
         admin_messages = chats.get(server_data.admin_chat_id, {}).get(0, [])
         assert any(
-            "No users are currently banned" in str(msg) for msg in admin_messages
+            "В данный момент никто не заблокирован" in str(msg)
+            for msg in admin_messages
         )
 
         # Test /help command
@@ -253,4 +254,6 @@ async def test_ban_commands():
 
         # Should have sent help message
         admin_messages = chats.get(server_data.admin_chat_id, {}).get(0, [])
-        assert any("Ban Commands Help" in str(msg) for msg in admin_messages)
+        assert any(
+            "Справка по командам блокировки" in str(msg) for msg in admin_messages
+        )

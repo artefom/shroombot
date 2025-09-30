@@ -129,20 +129,20 @@ async def _handle_ban_command(data: ServerData, thread_id: int, text: str) -> bo
             await data.telegram.send_topic_message(
                 data.admin_chat_id,
                 thread_id,
-                MyTextMessage(f"✅ User {user_id} has been banned"),
+                MyTextMessage(f"✅ Пользователь {user_id} заблокирован"),
             )
         else:
             await data.telegram.send_topic_message(
                 data.admin_chat_id,
                 thread_id,
-                MyTextMessage(f"⚠️ User {user_id} was already banned"),
+                MyTextMessage(f"⚠️ Пользователь {user_id} уже был заблокирован"),
             )
     except (ValueError, IndexError):
         await data.telegram.send_topic_message(
             data.admin_chat_id,
             thread_id,
             MyTextMessage(
-                "❌ Invalid command. Use: /ban <user_id> or reply to a message with /ban"
+                "❌ Неверная команда. Используйте: /ban <user_id> или ответьте на сообщение с /ban"
             ),
         )
     return True
@@ -156,20 +156,20 @@ async def _handle_ban_reply(data: ServerData, thread_id: int) -> bool:
             await data.telegram.send_topic_message(
                 data.admin_chat_id,
                 thread_id,
-                MyTextMessage(f"✅ User {chat_id} has been banned"),
+                MyTextMessage(f"✅ Пользователь {chat_id} заблокирован"),
             )
         else:
             await data.telegram.send_topic_message(
                 data.admin_chat_id,
                 thread_id,
-                MyTextMessage(f"⚠️ User {chat_id} was already banned"),
+                MyTextMessage(f"⚠️ Пользователь {chat_id} уже был заблокирован"),
             )
     else:
         await data.telegram.send_topic_message(
             data.admin_chat_id,
             thread_id,
             MyTextMessage(
-                "❌ Could not determine user ID. Reply to a user's message with /ban"
+                "❌ Не удалось определить ID пользователя. Ответьте на сообщение пользователя с /ban"
             ),
         )
     return True
@@ -183,21 +183,20 @@ async def _handle_unban_command(data: ServerData, thread_id: int, text: str) -> 
             await data.telegram.send_topic_message(
                 data.admin_chat_id,
                 thread_id,
-                MyTextMessage(f"✅ User {user_id} has been unbanned"),
+                MyTextMessage(f"✅ Пользователь {user_id} разблокирован"),
             )
         else:
             await data.telegram.send_topic_message(
                 data.admin_chat_id,
                 thread_id,
-                MyTextMessage(f"⚠️ User {user_id} was not banned"),
+                MyTextMessage(f"⚠️ Пользователь {user_id} не был заблокирован"),
             )
     except (ValueError, IndexError):
         await data.telegram.send_topic_message(
             data.admin_chat_id,
             thread_id,
             MyTextMessage(
-                "❌ Invalid command. Use: /unban <user_id>"
-                " or reply to a message with /unban"
+                "❌ Неверная команда. Используйте: /unban <user_id> или ответьте на сообщение с /unban"
             ),
         )
     return True
@@ -211,20 +210,20 @@ async def _handle_unban_reply(data: ServerData, thread_id: int) -> bool:
             await data.telegram.send_topic_message(
                 data.admin_chat_id,
                 thread_id,
-                MyTextMessage(f"✅ User {chat_id} has been unbanned"),
+                MyTextMessage(f"✅ Пользователь {chat_id} разблокирован"),
             )
         else:
             await data.telegram.send_topic_message(
                 data.admin_chat_id,
                 thread_id,
-                MyTextMessage(f"⚠️ User {chat_id} was not banned"),
+                MyTextMessage(f"⚠️ Пользователь {chat_id} не был заблокирован"),
             )
     else:
         await data.telegram.send_topic_message(
             data.admin_chat_id,
             thread_id,
             MyTextMessage(
-                "❌ Could not determine user ID. Reply to a user's message with /unban"
+                "❌ Не удалось определить ID пользователя. Ответьте на сообщение пользователя с /unban"
             ),
         )
     return True
@@ -238,40 +237,42 @@ async def _handle_banned_command(data: ServerData, thread_id: int) -> bool:
         await data.telegram.send_topic_message(
             data.admin_chat_id,
             thread_id,
-            MyTextMessage(f"🚫 Banned users ({len(banned_users)}): {banned_list}"),
+            MyTextMessage(
+                f"🚫 Заблокированные пользователи ({len(banned_users)}): {banned_list}"
+            ),
         )
     else:
         await data.telegram.send_topic_message(
             data.admin_chat_id,
             thread_id,
-            MyTextMessage("✅ No users are currently banned"),
+            MyTextMessage("✅ В данный момент никто не заблокирован"),
         )
     return True
 
 
 async def _handle_help_command(data: ServerData, thread_id: int) -> bool:
     """Handle /help command"""
-    help_text = """🛡️ **Ban Commands Help**
+    help_text = """🛡️ **Справка по командам блокировки**
 
-**Ban a user:**
-• `/ban <user_id>` - Ban by user ID
-• `/ban` - Reply to a user's message with this command
+**Заблокировать пользователя:**
+• `/ban <user_id>` - Заблокировать по ID пользователя
+• `/ban` - Ответить на сообщение пользователя этой командой
 
-**Unban a user:**
-• `/unban <user_id>` - Unban by user ID
-• `/unban` - Reply to a user's message with this command
+**Разблокировать пользователя:**
+• `/unban <user_id>` - Разблокировать по ID пользователя
+• `/unban` - Ответить на сообщение пользователя этой командой
 
-**Other commands:**
-• `/banned` - List all banned users
-• `/help` - Show this help
+**Другие команды:**
+• `/banned` - Показать всех заблокированных пользователей
+• `/help` - Показать эту справку
 
-**How to get User ID:**
-1. When a user sends a message, their ID is shown in the topic title
-2. Reply to their message with `/ban` or `/unban`
-3. Use `/ban <user_id>` if you know the ID
+**Как получить ID пользователя:**
+1. Когда пользователь отправляет сообщение, его ID показывается в заголовке темы
+2. Ответьте на его сообщение командой `/ban` или `/unban`
+3. Используйте `/ban <user_id>` если знаете ID
 
-**Example:**
-Reply to a spam message with `/ban` to ban that user instantly!"""
+**Пример:**
+Ответьте на спам-сообщение командой `/ban` чтобы мгновенно заблокировать этого пользователя!"""
 
     await data.telegram.send_topic_message(
         data.admin_chat_id, thread_id, MyTextMessage(help_text)
