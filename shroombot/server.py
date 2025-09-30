@@ -125,11 +125,14 @@ async def _handle_ban_command(data: ServerData, thread_id: int, text: str) -> bo
     """Handle /ban command with user ID"""
     try:
         user_id = int(text.split()[1])
-        if data.ban_manager.ban_user(user_id):
+        if data.ban_manager.ban_user(user_id, thread_id):
             await data.telegram.send_topic_message(
                 data.admin_chat_id,
                 thread_id,
-                MyTextMessage(f"✅ Пользователь {user_id} заблокирован"),
+                MyTextMessage(
+                    f"✅ Пользователь заблокирован\n📱 "
+                    f"User ID: {user_id}\n🧵 Thread ID: {thread_id}"
+                ),
             )
         else:
             await data.telegram.send_topic_message(
@@ -142,7 +145,8 @@ async def _handle_ban_command(data: ServerData, thread_id: int, text: str) -> bo
             data.admin_chat_id,
             thread_id,
             MyTextMessage(
-                "❌ Неверная команда. Используйте: /ban <user_id> или ответьте на сообщение с /ban"
+                "❌ Неверная команда. Используйте: /ban "
+                "<user_id> или ответьте на сообщение с /ban"
             ),
         )
     return True
@@ -152,11 +156,14 @@ async def _handle_ban_reply(data: ServerData, thread_id: int) -> bool:
     """Handle /ban command by replying to a message"""
     chat_id = data.anonymizer.get_chat_id(thread_id)
     if chat_id is not None:
-        if data.ban_manager.ban_user(chat_id):
+        if data.ban_manager.ban_user(chat_id, thread_id):
             await data.telegram.send_topic_message(
                 data.admin_chat_id,
                 thread_id,
-                MyTextMessage(f"✅ Пользователь {chat_id} заблокирован"),
+                MyTextMessage(
+                    f"✅ Пользователь заблокирован\n📱"
+                    f" User ID: {chat_id}\n🧵 Thread ID: {thread_id}"
+                ),
             )
         else:
             await data.telegram.send_topic_message(
@@ -169,7 +176,8 @@ async def _handle_ban_reply(data: ServerData, thread_id: int) -> bool:
             data.admin_chat_id,
             thread_id,
             MyTextMessage(
-                "❌ Не удалось определить ID пользователя. Ответьте на сообщение пользователя с /ban"
+                "❌ Не удалось определить ID пользователя."
+                " Ответьте на сообщение пользователя с /ban"
             ),
         )
     return True
@@ -196,7 +204,8 @@ async def _handle_unban_command(data: ServerData, thread_id: int, text: str) -> 
             data.admin_chat_id,
             thread_id,
             MyTextMessage(
-                "❌ Неверная команда. Используйте: /unban <user_id> или ответьте на сообщение с /unban"
+                "❌ Неверная команда. Используйте:"
+                " /unban <user_id> или ответьте на сообщение с /unban"
             ),
         )
     return True
@@ -223,7 +232,8 @@ async def _handle_unban_reply(data: ServerData, thread_id: int) -> bool:
             data.admin_chat_id,
             thread_id,
             MyTextMessage(
-                "❌ Не удалось определить ID пользователя. Ответьте на сообщение пользователя с /unban"
+                "❌ Не удалось определить ID пользователя."
+                " Ответьте на сообщение пользователя с /unban"
             ),
         )
     return True
@@ -233,13 +243,21 @@ async def _handle_banned_command(data: ServerData, thread_id: int) -> bool:
     """Handle /banned command"""
     banned_users = data.ban_manager.get_banned_users()
     if banned_users:
-        banned_list = ", ".join(map(str, sorted(banned_users)))
+        lines = [f"🚫 Заблокированные пользователи ({len(banned_users)}):"]
+        lines.append("")
+
+        for user_id, ban_info in sorted(banned_users.items()):
+            # Format: User ID | Ban date | Thread ID (if available)
+            ban_date = ban_info.banned_at.strftime("%Y-%m-%d %H:%M")
+            line = f"📱 {user_id} | 📅 {ban_date}"
+            if ban_info.thread_id:
+                line += f" | 🧵 {ban_info.thread_id}"
+            lines.append(line)
+
         await data.telegram.send_topic_message(
             data.admin_chat_id,
             thread_id,
-            MyTextMessage(
-                f"🚫 Заблокированные пользователи ({len(banned_users)}): {banned_list}"
-            ),
+            MyTextMessage("\n".join(lines)),
         )
     else:
         await data.telegram.send_topic_message(
@@ -272,7 +290,9 @@ async def _handle_help_command(data: ServerData, thread_id: int) -> bool:
 3. Используйте `/ban <user_id>` если знаете ID
 
 **Пример:**
-Ответьте на спам-сообщение командой `/ban` чтобы мгновенно заблокировать этого пользователя!"""
+Ответьте на спам-сообщение командой `/ban`
+чтобы мгновенно заблокировать этого пользователя!
+"""
 
     await data.telegram.send_topic_message(
         data.admin_chat_id, thread_id, MyTextMessage(help_text)

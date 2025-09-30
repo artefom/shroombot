@@ -201,42 +201,16 @@ def list_banned(
     banned_users = ban_manager.get_banned_users()
 
     if banned_users:
-        banned_list = ", ".join(map(str, sorted(banned_users)))
-        typer.echo(
-            f"🚫 Заблокированные пользователи ({len(banned_users)}): {banned_list}"
-        )
+        typer.echo(f"🚫 Заблокированные пользователи ({len(banned_users)}):")
+        typer.echo("")
+        for user_id, ban_info in sorted(banned_users.items()):
+            ban_date = ban_info.banned_at.strftime("%Y-%m-%d %H:%M")
+            line = f"📱 {user_id} | 📅 {ban_date}"
+            if ban_info.thread_id:
+                line += f" | 🧵 {ban_info.thread_id}"
+            typer.echo(line)
     else:
         typer.echo("✅ В данный момент никто не заблокирован")
-
-
-@app.command()
-def help_ban():
-    """Show help for ban commands"""
-    help_text = """🛡️ **Справка по командам блокировки**
-
-**CLI команды:**
-• `shroombot ban <user_id>` - Заблокировать пользователя по ID
-• `shroombot unban <user_id>` - Разблокировать пользователя по ID
-• `shroombot list-banned` - Показать всех заблокированных пользователей
-• `shroombot help-ban` - Показать эту справку
-
-**Telegram команды (Админ чат):**
-• `/ban <user_id>` - Заблокировать по ID пользователя
-• `/ban` - Ответить на сообщение пользователя чтобы заблокировать
-• `/unban <user_id>` - Разблокировать по ID пользователя
-• `/unban` - Ответить на сообщение пользователя чтобы разблокировать
-• `/banned` - Показать всех заблокированных пользователей
-• `/help` - Показать справку по Telegram
-
-**Как получить ID пользователя:**
-1. Когда пользователь отправляет сообщение, его ID показывается в админ чате
-2. Ответьте на его сообщение командой `/ban` или `/unban` в админ чате
-3. Используйте ID пользователя из админ чата для CLI команд
-
-**Пример:**
-В админ чате: Ответьте на спам-сообщение командой `/ban` чтобы мгновенно заблокировать этого пользователя!"""
-
-    typer.echo(help_text)
 
 
 if __name__ == "__main__":
