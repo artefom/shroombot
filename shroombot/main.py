@@ -16,6 +16,7 @@ from pathlib import Path
 import typer
 from aiotdlib.api import MessageDocument, MessagePhoto, MessageSticker
 
+from shroombot.ban_manager import BanManager
 from shroombot.server import (
     MyDocumentMessage,
     MyPhotoMessage,
@@ -31,15 +32,25 @@ app = typer.Typer()
 
 @app.command()
 def run(  # pylint: disable=too-many-locals
-    chat_mapping_file: str,
-    files_dir: str,
-    api_id: int = typer.Argument(..., envvar="API_ID"),
-    api_hash: str = typer.Argument(..., envvar="API_HASH"),
-    bot_token: str = typer.Argument(..., envvar="BOT_TOKEN"),
-    bind: str = typer.Option(..., envvar="BOT_API_SERVER_BIND"),
-    root_path: str = typer.Option("", envvar="BOT_API_ROOT_PATH"),
-    encryption_key: str = typer.Argument(..., envvar="ENCRYPTION_KEY"),
-    formatter: str = typer.Option("standard", envvar="LOG_FORMATTER"),
+    *,
+    chat_mapping_file: str = typer.Argument(..., help="Path to chat mapping file"),
+    files_dir: str = typer.Argument(..., help="Directory for files"),
+    api_id: int = typer.Argument(..., envvar="API_ID", help="Telegram API ID"),
+    api_hash: str = typer.Argument(..., envvar="API_HASH", help="Telegram API hash"),
+    bot_token: str = typer.Argument(..., envvar="BOT_TOKEN", help="Bot token"),
+    encryption_key: str = typer.Argument(
+        ..., envvar="ENCRYPTION_KEY", help="Encryption key"
+    ),
+    bind: str = typer.Option(
+        ..., envvar="BOT_API_SERVER_BIND", help="Server bind address"
+    ),
+    root_path: str = typer.Option("", envvar="BOT_API_ROOT_PATH", help="API root path"),
+    ban_file: str = typer.Option(
+        "banned_users.csv", envvar="BAN_FILE", help="Ban file path"
+    ),
+    formatter: str = typer.Option(
+        "standard", envvar="LOG_FORMATTER", help="Log formatter"
+    ),
 ):
     import asyncio
     import base64
@@ -78,12 +89,15 @@ def run(  # pylint: disable=too-many-locals
             chat_mapping_file, base64.b64decode(encryption_key)
         )
 
+        ban_manager = BanManager(ban_file)
+
         print(anonymizer.list_all_chats())
 
         server_data = server.ServerData(
             telegram=LiveTelegramApi(client),
             anonymizer=anonymizer,
             randomizer=randomizer,
+            ban_manager=ban_manager,
             # The admin chat id only can be fetched when you
             # manually add bot to a chat.
             # And from this addition event you can extract the chat id
@@ -146,6 +160,85 @@ def run(  # pylint: disable=too-many-locals
                 await asyncio.sleep(1)
 
     asyncio.run(_entry())
+
+
+@app.command()
+def ban(
+    user_id: int = typer.Argument(..., help="User ID to ban"),
+    ban_file: str = typer.Option(
+        "banned_users.csv", envvar="BAN_FILE", help="Path to ban file"
+    ),
+):
+    """Ban a user by ID"""
+    ban_manager = BanManager(ban_file)
+
+    if ban_manager.ban_user(user_id):
+        typer.echo(f"✅ User {user_id} has been banned")
+    else:
+        typer.echo(f"⚠️ User {user_id} was already banned")
+
+
+@app.command()
+def unban(
+    user_id: int = typer.Argument(..., help="User ID to unban"),
+    ban_file: str = typer.Option(
+        "banned_users.csv", envvar="BAN_FILE", help="Path to ban file"
+    ),
+):
+    """Unban a user by ID"""
+    ban_manager = BanManager(ban_file)
+
+    if ban_manager.unban_user(user_id):
+        typer.echo(f"✅ User {user_id} has been unbanned")
+    else:
+        typer.echo(f"⚠️ User {user_id} was not banned")
+
+
+@app.command()
+def list_banned(
+    ban_file: str = typer.Option(
+        "banned_users.csv", envvar="BAN_FILE", help="Path to ban file"
+    ),
+):
+    """List all banned users"""
+    ban_manager = BanManager(ban_file)
+    banned_users = ban_manager.get_banned_users()
+
+    if banned_users:
+        banned_list = ", ".join(map(str, sorted(banned_users)))
+        typer.echo(f"🚫 Banned users ({len(banned_users)}): {banned_list}")
+    else:
+        typer.echo("✅ No users are currently banned")
+
+
+@app.command()
+def help_ban():
+    """Show help for ban commands"""
+    help_text = """🛡️ **Ban Commands Help**
+
+**CLI Commands:**
+• `shroombot ban <user_id>` - Ban a user by ID
+• `shroombot unban <user_id>` - Unban a user by ID
+• `shroombot list-banned` - List all banned users
+• `shroombot help-ban` - Show this help
+
+**Telegram Commands (Admin Chat):**
+• `/ban <user_id>` - Ban by user ID
+• `/ban` - Reply to a user's message to ban them
+• `/unban <user_id>` - Unban by user ID
+• `/unban` - Reply to a user's message to unban them
+• `/banned` - List all banned users
+• `/help` - Show telegram help
+
+**How to get User ID:**
+1. When a user sends a message, their ID is shown in the admin chat
+2. Reply to their message with `/ban` or `/unban` in admin chat
+3. Use the user ID shown in the admin chat for CLI commands
+
+**Example:**
+In admin chat: Reply to a spam message with `/ban` to ban that user instantly!"""
+
+    typer.echo(help_text)
 
 
 if __name__ == "__main__":
