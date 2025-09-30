@@ -33,4 +33,4 @@ RUN pip install --no-deps .
 #
 # When using entrypoint script use 'exec <command>' to propagate signals
 ENTRYPOINT [ "shroombot" ]
-CMD ["/mapping.bin", "/.aiotdlib", "/banned_users.csv"]
+CMD ["run", "/mapping.bin", "/.aiotdlib", "/banned_users.csv"]
