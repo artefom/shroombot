@@ -35,6 +35,7 @@ def run(  # pylint: disable=too-many-locals
     *,
     chat_mapping_file: str = typer.Argument(..., help="Path to chat mapping file"),
     files_dir: str = typer.Argument(..., help="Directory for files"),
+    ban_file: str = typer.Argument(..., help="Ban file path"),
     api_id: int = typer.Argument(..., envvar="API_ID", help="Telegram API ID"),
     api_hash: str = typer.Argument(..., envvar="API_HASH", help="Telegram API hash"),
     bot_token: str = typer.Argument(..., envvar="BOT_TOKEN", help="Bot token"),
@@ -45,9 +46,6 @@ def run(  # pylint: disable=too-many-locals
         ..., envvar="BOT_API_SERVER_BIND", help="Server bind address"
     ),
     root_path: str = typer.Option("", envvar="BOT_API_ROOT_PATH", help="API root path"),
-    ban_file: str = typer.Option(
-        "banned_users.csv", envvar="BAN_FILE", help="Ban file path"
-    ),
     formatter: str = typer.Option(
         "standard", envvar="LOG_FORMATTER", help="Log formatter"
     ),
@@ -90,6 +88,8 @@ def run(  # pylint: disable=too-many-locals
         )
 
         ban_manager = BanManager(ban_file)
+
+        print(f"Ban file: {ban_file}")
 
         print(anonymizer.list_all_chats())
 
