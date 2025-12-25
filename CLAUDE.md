@@ -37,26 +37,9 @@ The project uses:
 
 6. **API Server** (`shroombot/api_server.py`): FastAPI app with health check and Prometheus metrics.
 
-### Multi-Bot Components (New)
-
-7. **BotConfig** (`shroombot/bot_config.py`): JSON-based configuration system
-   - `BotType`: Enum for bot types (FORUM, SIMPLE)
-   - `BotConfig`: Per-bot configuration (token, admin_chat_id, files, etc.)
-   - `SharedConfig`: Shared settings across all bots
-   - `MultiBotConfig`: Complete multi-bot configuration with env var substitution
-
-8. **BotHandler** (`shroombot/bot_handler.py`): Bot type abstraction
-   - `ForumBotHandler`: Topic-based routing (wraps existing `_process_*_message` functions)
-   - `SimpleBotHandler`: Reply-based routing with message ID mapping
-
-9. **BotInstance** (`shroombot/bot_instance.py`): Encapsulates single bot
-   - Contains Client, ServerData, Handler for one bot
-   - Factory method creates appropriate handler based on bot type
-
-10. **MultiBotManager** (`shroombot/multi_bot_manager.py`): Orchestrates multiple bots
-   - Initializes and starts all bot instances
-   - Registers message handlers per bot
-   - Provides error isolation between bots
+7. **BotHandler** (`shroombot/bot_handler.py`): Bot type abstraction
+   - `ForumBotHandler`: Topic-based routing for forum bots
+   - `SimpleBotHandler`: Reply-based routing with message ID mapping and name generation
 
 ### Message Flow
 
@@ -75,16 +58,17 @@ The project uses:
 **Simple Bot (User → Admin):**
 1. User sends message to bot
 2. Check if user is banned (if yes, silently drop)
-3. Prepend "👤 User ID: X" to message
-4. Forward to admin chat (no topic)
-5. Store message_id → user_chat_id mapping
+3. Generate or retrieve anonymous name for user (e.g., "User Alpha")
+4. Prepend "👤 <generated_name>" to message
+5. Forward to admin chat (no topic)
+6. Store message_id → user_chat_id mapping
 
 **Simple Bot (Admin → User):**
 1. Admin replies to forwarded message (using Telegram reply feature)
 2. Extract user_chat_id from reply_to_message_id via mapping
-3. Fallback: parse User ID from message text if mapping not found
+3. Fallback: parse generated name from message text and look up user_chat_id
 4. Send reply to user
-5. Admin commands (`/ban <id>`, `/unban <id>`, `/banned`, `/help`) supported
+5. Admin commands (`/ban <name>`, `/ban <id>`, `/unban <name>`, `/banned`, `/help`) supported
 
 ## Common Commands
 
@@ -135,50 +119,34 @@ export BOT_API_SERVER_BIND=0.0.0.0:8080
 shroombot run mapping.bin .aiotdlib banned_users.csv
 ```
 
-### Running Multiple Bots (New)
+### Bot Types
 
-**IMPORTANT**: Due to aiotdlib limitations, each bot must run in a separate process.
+The bot supports two different behavior modes:
+
+**Forum Bot (--bot-type forum)**
+- Topic-based system using Telegram supergroup forums
+- Each user gets a dedicated topic in the admin chat
+- Uses mushroom names by default (or generic with --name-type generic)
+- Admins reply within topics
+
+**Simple Bot (--bot-type simple)**
+- Reply-based system for simple chats (no topics)
+- User messages forwarded to admin chat with name prefix
+- Uses generic names by default (User Alpha, Anonymous 1, etc.)
+- Admins reply using Telegram's reply feature
 
 ```bash
-# Run a single bot from JSON config
-shroombot run-multi config.json --bot-id forum_bot
+# Run forum bot (default)
+shroombot run mapping.bin .aiotdlib banned.csv
 
-# Run another bot in a separate process/terminal
-shroombot run-multi config.json --bot-id simple_bot
+# Run simple bot
+shroombot run mapping.bin .aiotdlib banned.csv --bot-type simple
 
-# Run without API server (useful when running multiple instances)
-shroombot run-multi config.json --bot-id forum_bot --skip-api-server
+# Run forum bot with generic names
+shroombot run mapping.bin .aiotdlib banned.csv --bot-type forum --name-type generic
 
-# Example config.json structure (see config.example.json):
-# {
-#   "shared": { "bind": "0.0.0.0:8000", "files_dir_base": "/app/data" },
-#   "bots": [
-#     { "bot_id": "forum_bot", "bot_type": "forum", "bot_token": "${BOT1_TOKEN}", ... },
-#     { "bot_id": "simple_bot", "bot_type": "simple", "bot_token": "${BOT2_TOKEN}", ... }
-#   ]
-# }
-
-# Set environment variables for tokens/keys:
-export BOT1_TOKEN=...
-export BOT2_TOKEN=...
-export API_HASH=...
-export BOT1_ENCRYPTION_KEY=...
-export BOT2_ENCRYPTION_KEY=...
-
-# Each bot runs in its own process with separate resources (mappings, ban lists, files)
-```
-
-**Running with a process manager:**
-```bash
-# Using simple bash script
-./run_bots.sh &
-
-# Using systemd (create two service files)
-systemctl start shroombot-forum
-systemctl start shroombot-simple
-
-# Using docker-compose (define two services)
-docker-compose up -d
+# Run simple bot with mushroom names
+shroombot run mapping.bin .aiotdlib banned.csv --bot-type simple --name-type mushroom
 ```
 
 ### Ban Management CLI

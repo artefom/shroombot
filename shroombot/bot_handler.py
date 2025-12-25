@@ -152,6 +152,10 @@ class SimpleBotHandler(BotHandler):
     def __init__(self):
         # Map: forwarded_message_id -> original_user_chat_id
         self.message_mapping: dict[int, int] = {}
+        # Map: user_chat_id -> generated_name
+        self.user_name_mapping: dict[int, str] = {}
+        # Map: generated_name -> user_chat_id (reverse lookup for ban commands)
+        self.name_to_user_mapping: dict[str, int] = {}
 
     async def process_user_message(
         self, data: ServerData, chat_id: int, message: MyMessageType
@@ -173,8 +177,17 @@ class SimpleBotHandler(BotHandler):
             logger.info("Ignoring message from banned user %d", chat_id)
             return
 
-        # Add user ID prefix to message
-        prefixed_message = self._add_user_id_prefix(message, chat_id)
+        # Get or generate anonymous name for this user
+        if chat_id not in self.user_name_mapping:
+            generated_name = data.randomizer.get_random_topic_name()
+            self.user_name_mapping[chat_id] = generated_name
+            self.name_to_user_mapping[generated_name] = chat_id
+            logger.info("Generated name '%s' for user %d", generated_name, chat_id)
+
+        # Add user name prefix to message
+        prefixed_message = self._add_user_name_prefix(
+            message, self.user_name_mapping[chat_id]
+        )
 
         # Forward to admin chat (no topic)
         sent_message_obj = await data.telegram.send_message(
@@ -267,11 +280,11 @@ class SimpleBotHandler(BotHandler):
         # Send reply to user
         await data.telegram.send_message(user_chat_id, message)
 
-    def _add_user_id_prefix(
-        self, message: MyMessageType, user_id: int
+    def _add_user_name_prefix(
+        self, message: MyMessageType, user_name: str
     ) -> MyMessageType:
-        """Add 'User ID: X' prefix to message"""
-        prefix = f"👤 User ID: {user_id}\n\n"
+        """Add anonymous user name prefix to message"""
+        prefix = f"👤 {user_name}\n\n"
 
         if isinstance(message, MyTextMessage):
             return MyTextMessage(text=prefix + message.text, entities=message.entities)
@@ -285,7 +298,7 @@ class SimpleBotHandler(BotHandler):
         """
         Extract user ID from replied message text (fallback method)
 
-        Looks for "User ID: 123456789" pattern in the message
+        Looks for "👤 <generated_name>" pattern in the message
         """
         try:
             # Get the message that was replied to
@@ -294,17 +307,23 @@ class SimpleBotHandler(BotHandler):
             # Check if it has text content
             if isinstance(message.content, MessageText):
                 text = message.content.text.text
-                # Look for pattern: "User ID: 123456789"
-                match = re.search(r"User ID:\s*(\d+)", text)
+                # Look for pattern: "👤 User Alpha" or "👤 Anonymous 1", etc.
+                # Extract everything between "👤 " and the first newline
+                match = re.search(r"👤\s*(.+?)(?:\n|$)", text)
                 if match:
-                    return int(match.group(1))
+                    user_name = match.group(1).strip()
+                    # Look up user_id from name
+                    user_id = self.name_to_user_mapping.get(user_name)
+                    if user_id:
+                        return user_id
+                    logger.warning("User name '%s' not found in mapping", user_name)
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error("Error extracting user ID from message %d: %s", message_id, e)
 
         return None
 
-    async def _handle_simple_admin_commands(
+    async def _handle_simple_admin_commands(  # pylint: disable=too-many-return-statements,too-many-branches,too-many-statements
         self, data: ServerData, message: MyTextMessage
     ) -> bool:
         """
@@ -314,47 +333,95 @@ class SimpleBotHandler(BotHandler):
         """
         text = message.text.strip()
 
-        # /ban <user_id>
+        # /ban <user_id_or_name>
         if text.startswith("/ban "):
             try:
-                user_id = int(text.split()[1])
+                parts = text.split(maxsplit=1)
+                if len(parts) < 2:
+                    raise ValueError("Missing argument")
+
+                identifier = parts[1].strip()
+
+                # Try to parse as user_id first
+                try:
+                    user_id = int(identifier)
+                except ValueError:
+                    # Not a number, treat as generated name
+                    user_id = self.name_to_user_mapping.get(identifier)
+                    if user_id is None:
+                        await data.telegram.send_message(
+                            data.admin_chat_id,
+                            MyTextMessage(
+                                f"❌ Пользователь с именем '{identifier}' не найден"
+                            ),
+                        )
+                        return True
+
+                user_name = self.user_name_mapping.get(user_id, f"ID {user_id}")
+
                 if data.ban_manager.ban_user(user_id):
                     await data.telegram.send_message(
                         data.admin_chat_id,
-                        MyTextMessage(f"✅ Пользователь {user_id} заблокирован"),
+                        MyTextMessage(f"✅ Пользователь {user_name} заблокирован"),
                     )
                 else:
                     await data.telegram.send_message(
                         data.admin_chat_id,
                         MyTextMessage(
-                            f"⚠️ Пользователь {user_id} уже был заблокирован"
+                            f"⚠️ Пользователь {user_name} уже был заблокирован"
                         ),
                     )
             except (ValueError, IndexError):
                 await data.telegram.send_message(
                     data.admin_chat_id,
-                    MyTextMessage("❌ Неверная команда. Используйте: /ban <user_id>"),
+                    MyTextMessage("❌ Неверная команда. Используйте: /ban <имя_или_id>"),
                 )
             return True
 
-        # /unban <user_id>
+        # /unban <user_id_or_name>
         if text.startswith("/unban "):
             try:
-                user_id = int(text.split()[1])
+                parts = text.split(maxsplit=1)
+                if len(parts) < 2:
+                    raise ValueError("Missing argument")
+
+                identifier = parts[1].strip()
+
+                # Try to parse as user_id first
+                try:
+                    user_id = int(identifier)
+                except ValueError:
+                    # Not a number, treat as generated name
+                    user_id = self.name_to_user_mapping.get(identifier)
+                    if user_id is None:
+                        await data.telegram.send_message(
+                            data.admin_chat_id,
+                            MyTextMessage(
+                                f"❌ Пользователь с именем '{identifier}' не найден"
+                            ),
+                        )
+                        return True
+
+                user_name = self.user_name_mapping.get(user_id, f"ID {user_id}")
+
                 if data.ban_manager.unban_user(user_id):
                     await data.telegram.send_message(
                         data.admin_chat_id,
-                        MyTextMessage(f"✅ Пользователь {user_id} разблокирован"),
+                        MyTextMessage(f"✅ Пользователь {user_name} разблокирован"),
                     )
                 else:
                     await data.telegram.send_message(
                         data.admin_chat_id,
-                        MyTextMessage(f"⚠️ Пользователь {user_id} не был заблокирован"),
+                        MyTextMessage(
+                            f"⚠️ Пользователь {user_name} не был заблокирован"
+                        ),
                     )
             except (ValueError, IndexError):
                 await data.telegram.send_message(
                     data.admin_chat_id,
-                    MyTextMessage("❌ Неверная команда. Используйте: /unban <user_id>"),
+                    MyTextMessage(
+                        "❌ Неверная команда. Используйте: /unban <имя_или_id>"
+                    ),
                 )
             return True
 
@@ -366,7 +433,8 @@ class SimpleBotHandler(BotHandler):
                 lines.append("")
                 for user_id, ban_info in sorted(banned_users.items()):
                     ban_date = ban_info.banned_at.strftime("%Y-%m-%d %H:%M")
-                    line = f"📱 {user_id} | 📅 {ban_date}"
+                    user_name = self.user_name_mapping.get(user_id, f"ID {user_id}")
+                    line = f"👤 {user_name} | 📅 {ban_date}"
                     lines.append(line)
 
                 await data.telegram.send_message(
@@ -384,20 +452,23 @@ class SimpleBotHandler(BotHandler):
             help_text = """🛡️ **Справка по командам блокировки**
 
 **Заблокировать пользователя:**
-• `/ban <user_id>` - Заблокировать по ID пользователя
+• `/ban <имя>` - Заблокировать по имени (например: "User Alpha")
+• `/ban <id>` - Заблокировать по числовому ID
 
 **Разблокировать пользователя:**
-• `/unban <user_id>` - Разблокировать по ID пользователя
+• `/unban <имя>` - Разблокировать по имени
+• `/unban <id>` - Разблокировать по числовому ID
 
 **Другие команды:**
 • `/banned` - Показать всех заблокированных пользователей
 • `/help` - Показать эту справку
 
-**Как узнать ID пользователя:**
-ID пользователя показан в начале каждого сообщения: "👤 User ID: 123456789"
+**Как узнать имя пользователя:**
+Имя пользователя показано в начале каждого сообщения: "👤 User Alpha"
 
-**Пример:**
-Используйте `/ban 123456789` чтобы заблокировать этого пользователя!
+**Примеры:**
+• `/ban User Alpha` - заблокировать пользователя "User Alpha"
+• `/ban 123456789` - заблокировать по ID (если известен)
 """
             await data.telegram.send_message(
                 data.admin_chat_id, MyTextMessage(help_text)
