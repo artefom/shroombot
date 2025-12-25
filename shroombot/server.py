@@ -7,7 +7,7 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
-from aiotdlib.api import TextEntity
+from aiotdlib.api import TextEntity, Message
 
 from shroombot.anonymizer import Anonymizer
 from shroombot.ban_manager import BanManager
@@ -53,9 +53,11 @@ class TelegramApi(ABC):
         self,
         chat_id: int,
         message: MyMessageType,
-    ):
+    ) -> Message:
         """
         Send message to specific chat and thread
+
+        Returns the sent message object
         """
         ...
 
@@ -77,6 +79,15 @@ class TelegramApi(ABC):
         Creates topic in a chat.
 
         Returns topic id
+        """
+        ...
+
+    @abstractmethod
+    async def get_message(self, chat_id: int, message_id: int) -> Message:
+        """
+        Get message by ID
+
+        Returns message object
         """
         ...
 
