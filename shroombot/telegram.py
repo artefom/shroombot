@@ -83,9 +83,11 @@ class LiveTelegramApi(TelegramApi):
     ):
         """
         Send message to specific chat and thread
+
+        Returns the sent message object
         """
 
-        await self.client.api.send_message(
+        return await self.client.api.send_message(
             chat_id,
             message_to_content(message),
         )
@@ -117,3 +119,11 @@ class LiveTelegramApi(TelegramApi):
         topic_info = await self.client.api.create_forum_topic(chat_id, title, icon)
 
         return int(topic_info.message_thread_id)
+
+    async def get_message(self, chat_id: int, message_id: int):
+        """
+        Get message by ID (for reply tracking in simple bot)
+
+        Returns message object
+        """
+        return await self.client.api.get_message(chat_id, message_id)

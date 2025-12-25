@@ -4,6 +4,7 @@ Testing of the primary server functionality
 
 import os
 from tempfile import TemporaryDirectory
+from unittest.mock import MagicMock
 
 import pytest
 from cryptography.fernet import Fernet
@@ -37,6 +38,10 @@ class MockTelegramApi(TelegramApi):
         """
         assert isinstance(message, MyTextMessage)
         self.chats[chat_id][0].append(message.text)
+        # Return a mock Message object
+        mock_msg = MagicMock()
+        mock_msg.id = len(self.chats[chat_id][0])  # Use message count as ID
+        return mock_msg
 
     async def send_topic_message(
         self,
@@ -62,6 +67,19 @@ class MockTelegramApi(TelegramApi):
         self.chats[chat_id][topic_id] = list()
         self.topic_names[topic_id] = title
         return topic_id
+
+    async def get_message(self, chat_id: int, message_id: int):
+        """
+        Get message by ID (mock implementation)
+
+        Returns a mock message object
+        """
+        mock_msg = MagicMock()
+        mock_msg.id = message_id
+        mock_msg.content = MagicMock()
+        mock_msg.content.text = MagicMock()
+        mock_msg.content.text.text = "Mock message"
+        return mock_msg
 
 
 class MockRandomizer(NameRandomizer):

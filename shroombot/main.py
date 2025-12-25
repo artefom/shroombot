@@ -27,7 +27,7 @@ from shroombot.server import (
 logger = logging.getLogger(__name__)
 
 
-app = typer.Typer()
+app = typer.Typer(pretty_exceptions_enable=False)
 
 
 @app.command()
@@ -154,6 +154,93 @@ def run(  # pylint: disable=too-many-locals
 
             while True:
                 await asyncio.sleep(1)
+
+    asyncio.run(_entry())
+
+
+@app.command()
+def run_multi(
+    config_file: str = typer.Argument(
+        "config.json", help="Path to JSON configuration file"
+    ),
+    bot_id: str = typer.Option(
+        None,
+        "--bot-id",
+        help="Run only the bot with this ID (if not specified, runs all bots)",
+    ),
+    skip_api_server: bool = typer.Option(
+        False, "--skip-api-server", help="Skip starting the API server"
+    ),
+    formatter: str = typer.Option(
+        "standard", envvar="LOG_FORMATTER", help="Log formatter"
+    ),
+):
+    """
+    Run bot(s) from JSON configuration file
+
+    Examples:
+    - Run all bots: shroombot run-multi config.json
+    - Run single bot: shroombot run-multi config.json --bot-id forum_bot
+    - Run without API server: shroombot run-multi
+      config.json --bot-id forum_bot --skip-api-server
+    """
+    import asyncio
+    import logging.config as logging_config
+
+    from shroombot.bot_config import MultiBotConfig
+    from shroombot.multi_bot_manager import MultiBotManager
+
+    from . import api_server
+
+    # Configure logging
+    logging_config.dictConfig(_get_logging_config(logging.INFO, formatter))
+
+    async def _entry():
+        # Load configuration from JSON file
+        try:
+            config = MultiBotConfig.from_json_file(config_file)
+        except Exception as e:
+            logger.error("Failed to load configuration from %s: %s", config_file, e)
+            raise
+
+        # Filter bots if bot_id is specified
+        if bot_id:
+            matching_bots = [b for b in config.bots if b.bot_id == bot_id]
+            if not matching_bots:
+                available_ids = ", ".join(b.bot_id for b in config.bots)
+                logger.error(
+                    "Bot with ID '%s' not found in config. Available: %s",
+                    bot_id,
+                    available_ids,
+                )
+                raise ValueError(f"Bot ID '{bot_id}' not found in configuration")
+
+            config.bots = matching_bots
+            logger.info("Running single bot: %s", bot_id)
+        else:
+            logger.info(
+                "Running all bots: %s", ", ".join(b.bot_id for b in config.bots)
+            )
+
+        # Create and initialize bot manager
+        manager = MultiBotManager(config)
+        await manager.initialize()
+
+        # Start all bots
+        await manager.start_all()
+
+        # Start API server (unless skipped)
+        if not skip_api_server:
+            await api_server.run_api_server(config.shared.bind, config.shared.root_path)
+        else:
+            logger.info("Skipping API server")
+
+        try:
+            # Keep running
+            while True:
+                await asyncio.sleep(1)
+        finally:
+            await manager.stop_all()
 
     asyncio.run(_entry())
 

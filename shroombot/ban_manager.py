@@ -144,21 +144,3 @@ class BanManager:
             Dict[int, BanInfo]: Dictionary mapping user IDs to BanInfo objects
         """
         return self._banned_users.copy()
-
-    def get_ban_info(self, user_id: int) -> Optional[BanInfo]:
-        """
-        Get ban information for a specific user
-
-        Returns:
-            BanInfo: Ban information if user is banned, None otherwise
-        """
-        return self._banned_users.get(user_id)
-
-    def get_banned_count(self) -> int:
-        """
-        Get number of banned users
-
-        Returns:
-            int: Number of banned users
-        """
-        return len(self._banned_users)
