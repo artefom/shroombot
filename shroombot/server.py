@@ -7,7 +7,7 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
-from aiotdlib.api import TextEntity, Message
+from aiotdlib.api import TextEntity
 
 from shroombot.anonymizer import Anonymizer
 from shroombot.ban_manager import BanManager
@@ -405,8 +405,13 @@ async def _process_user_message(data: ServerData, chat_id: int, message: MyMessa
         )
 
 
+# pylint: disable=unused-argument
 async def process_incomming_message_forum(
-    data: ServerData, chat_id: int, thread_id: int, message: MyMessageType
+    data: ServerData,
+    chat_id: int,
+    thread_id: int,
+    message: MyMessageType,
+    reply_to_message_id: int | None = None,
 ):
     try:
         if chat_id == data.admin_chat_id:

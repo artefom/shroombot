@@ -4,13 +4,7 @@ Bot handler abstraction for different bot types
 
 import logging
 
-
-from shroombot.server import (
-    MyMessageType,
-    MyTextMessage,
-    ServerData,
-)
-
+from shroombot.server import MyMessageType, MyTextMessage, ServerData
 
 logger = logging.getLogger(__name__)
 
@@ -152,12 +146,12 @@ async def _handle_ban_cmd(data: ServerData, user_chat_id: int, cmd: str):
             )
 
 
-async def process_incomming_message_admin(
+async def process_incomming_message_simple(
     data: ServerData,
     chat_id: int,
     thread_id: int,
     message: MyMessageType,
-    reply_to_message_id: int | None,
+    reply_to_message_id: int | None = None,
 ):
     try:
         if chat_id == data.admin_chat_id:

@@ -14,15 +14,6 @@ import logging
 from pathlib import Path
 
 import typer
-from aiotdlib.api import MessageDocument, MessagePhoto, MessageSticker
-
-from shroombot.ban_manager import BanManager
-from shroombot.server import (
-    MyDocumentMessage,
-    MyPhotoMessage,
-    MyStickerMessage,
-    MyTextMessage,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +22,7 @@ app = typer.Typer()
 
 
 @app.command()
-def run(  # pylint: disable=too-many-locals
+def run(  # pylint: disable=[too-many-locals,too-many-statements]
     *,
     chat_mapping_file: str = typer.Argument(..., help="Path to chat mapping file"),
     files_dir: str = typer.Argument(..., help="Directory for files"),
@@ -50,14 +41,22 @@ def run(  # pylint: disable=too-many-locals
         "standard", envvar="LOG_FORMATTER", help="Log formatter"
     ),
     bot_type: str = typer.Argument(..., envvar="BOT_TYPE", help="simple or forum"),
+    name_style: str = typer.Argument(
+        ..., envvar="BOT_NAME_STYLE", help="shroom or generic"
+    ),
+    admin_chat_id: int = typer.Argument(..., envvar="BOT_ADMIN_CHAT_ID"),
 ):
     import asyncio
     import base64
     import logging.config as logging_config
 
     from aiotdlib.api import (
+        MessageDocument,
         MessageForumTopicCreated,
         MessageForumTopicIsHiddenToggled,
+        MessagePhoto,
+        MessageReplyToMessage,
+        MessageSticker,
         MessageText,
         UpdateNewMessage,
     )
@@ -65,13 +64,37 @@ def run(  # pylint: disable=too-many-locals
     from aiotdlib.client import Client
 
     from shroombot.anonymizer import Anonymizer
-    from shroombot.server import process_incomming_message_forum
-    from shroombot.shroomgen import ShroomNameRandomizer, default_shroom_names
+    from shroombot.ban_manager import BanManager
+    from shroombot.server import (
+        MyDocumentMessage,
+        MyPhotoMessage,
+        MyStickerMessage,
+        MyTextMessage,
+        process_incomming_message_forum,
+    )
+    from shroombot.shroomgen import (
+        GenericNameRandomizer,
+        ShroomNameRandomizer,
+        default_shroom_names,
+    )
+    from shroombot.simple_server import process_incomming_message_simple
     from shroombot.telegram import LiveTelegramApi
 
     from . import api_server, server
 
-    randomizer = ShroomNameRandomizer(default_shroom_names())
+    if name_style == "shroom":
+        randomizer = ShroomNameRandomizer(default_shroom_names())
+    elif name_style == "generic":
+        randomizer = GenericNameRandomizer()
+    else:
+        raise RuntimeError(f"Unexpected name style {name_style}")
+
+    if bot_type == "forum":
+        msg_handler = process_incomming_message_forum
+    elif bot_type == "simple":
+        msg_handler = process_incomming_message_simple
+    else:
+        raise RuntimeError(f"Unexpected bot type {name_style}")
 
     # Configure logging
     logging_config.dictConfig(_get_logging_config(logging.INFO, formatter))
@@ -98,7 +121,7 @@ def run(  # pylint: disable=too-many-locals
             # The admin chat id only can be fetched when you
             # manually add bot to a chat.
             # And from this addition event you can extract the chat id
-            admin_chat_id=-1002232979097,
+            admin_chat_id=admin_chat_id,
         )
 
         async def message_handler(_, update: UpdateNewMessage):
@@ -141,11 +164,17 @@ def run(  # pylint: disable=too-many-locals
                     f"<unsupported type {content.__class__.__name__}>",
                 )
 
-            await process_incomming_message_forum(
+            reply_to_message_id: int | None = None
+
+            if isinstance(message.reply_to, MessageReplyToMessage):
+                reply_to_message_id = message.reply_to.message_id
+
+            await msg_handler(
                 server_data,
                 message.chat_id,
                 message.message_thread_id,
                 content,
+                reply_to_message_id,
             )
 
         client.add_event_handler(message_handler, API.Types.UPDATE_NEW_MESSAGE)
@@ -167,6 +196,8 @@ def ban(
     ),
 ):
     """Ban a user by ID"""
+    from shroombot.ban_manager import BanManager
+
     ban_manager = BanManager(ban_file)
 
     if ban_manager.ban_user(user_id):
@@ -183,6 +214,8 @@ def unban(
     ),
 ):
     """Unban a user by ID"""
+    from shroombot.ban_manager import BanManager
+
     ban_manager = BanManager(ban_file)
 
     if ban_manager.unban_user(user_id):
@@ -198,6 +231,8 @@ def list_banned(
     ),
 ):
     """List all banned users"""
+    from shroombot.ban_manager import BanManager
+
     ban_manager = BanManager(ban_file)
     banned_users = ban_manager.get_banned_users()
 

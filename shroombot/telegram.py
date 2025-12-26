@@ -12,7 +12,6 @@ from aiotdlib.api import (
     InputMessagePhoto,
     InputMessageSticker,
     InputMessageText,
-    Message,
     TextEntity,
 )
 from aiotdlib.client import Client
