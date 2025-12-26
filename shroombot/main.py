@@ -49,6 +49,7 @@ def run(  # pylint: disable=too-many-locals
     formatter: str = typer.Option(
         "standard", envvar="LOG_FORMATTER", help="Log formatter"
     ),
+    bot_type: str = typer.Argument(..., envvar="BOT_TYPE", help="simple or forum"),
 ):
     import asyncio
     import base64
@@ -64,7 +65,7 @@ def run(  # pylint: disable=too-many-locals
     from aiotdlib.client import Client
 
     from shroombot.anonymizer import Anonymizer
-    from shroombot.server import process_incomming_message
+    from shroombot.server import process_incomming_message_forum
     from shroombot.shroomgen import ShroomNameRandomizer, default_shroom_names
     from shroombot.telegram import LiveTelegramApi
 
@@ -140,7 +141,7 @@ def run(  # pylint: disable=too-many-locals
                     f"<unsupported type {content.__class__.__name__}>",
                 )
 
-            await process_incomming_message(
+            await process_incomming_message_forum(
                 server_data,
                 message.chat_id,
                 message.message_thread_id,

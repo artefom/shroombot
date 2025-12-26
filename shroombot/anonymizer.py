@@ -10,7 +10,7 @@ import os
 from dataclasses import dataclass
 
 from cryptography.fernet import Fernet, InvalidToken
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 def load_encrypted_json_file(file_path: str, encryption_key: bytes) -> dict:
@@ -61,8 +61,14 @@ class MappingItem(BaseModel):
     topic_id: int
 
 
+class UserNameMapping(BaseModel):
+    chat_id: int
+    name: str
+
+
 class EncryptedData(BaseModel):
-    mappings: list[MappingItem]
+    mappings: list[MappingItem] = Field(default_factory=list)
+    name_mappings: list[UserNameMapping] = Field(default_factory=list)
 
 
 class CouldNotDecrypt(Exception):
@@ -88,6 +94,9 @@ class Anonymizer:
 
     topic_x_chat: dict[int, int]
     chat_x_topic: dict[int, int]
+
+    chat_x_name: dict[int, str]
+
     lock: asyncio.Lock
     file_path: str
     encryption_key: bytes
@@ -103,8 +112,9 @@ class Anonymizer:
 
     @staticmethod
     async def from_file(file_path: str, encryption_key: bytes) -> "Anonymizer":
-        topic_x_chat = dict()
-        chat_x_topic = dict()
+        topic_x_chat: dict[int, int] = dict()
+        chat_x_topic: dict[int, int] = dict()
+        chat_x_name: dict[int, str] = dict()
 
         if os.path.exists(file_path):
             if not is_file_empty(file_path):
@@ -121,13 +131,20 @@ class Anonymizer:
                     topic_x_chat[mapping.topic_id] = mapping.chat_id
                     chat_x_topic[mapping.chat_id] = mapping.topic_id
 
+                for mapping in data.name_mappings:
+                    chat_x_name[mapping.chat_id] = mapping.name
+
         return Anonymizer(
             topic_x_chat=topic_x_chat,
             chat_x_topic=chat_x_topic,
+            chat_x_name=chat_x_name,
             lock=asyncio.Lock(),
             file_path=file_path,
             encryption_key=encryption_key,
         )
+
+    def get_user_name(self, chat_id: int) -> str | None:
+        return self.chat_x_name.get(chat_id)
 
     def get_topic_id(self, chat_id: int) -> int | None:
         """
@@ -136,19 +153,29 @@ class Anonymizer:
 
         return self.chat_x_topic.get(chat_id)
 
-    async def register_chat_topic_link(self, chat_id: int, topic_id: int):
-        async with self.lock:
-            self.chat_x_topic[chat_id] = topic_id
-            self.topic_x_chat[topic_id] = chat_id
+    async def register_chat_user_name_link(self, chat_id: int, name: str):
+        self.chat_x_name[chat_id] = name
+        await self._dump()
 
-            mappings = list()
+    async def register_chat_topic_link(self, chat_id: int, topic_id: int):
+        self.chat_x_topic[chat_id] = topic_id
+        self.topic_x_chat[topic_id] = chat_id
+        await self._dump()
+
+    async def _dump(self):
+        async with self.lock:
+            mappings: list[MappingItem] = list()
             for m_chat_id, m_topic_id in self.chat_x_topic.items():
                 mappings.append(MappingItem(chat_id=m_chat_id, topic_id=m_topic_id))
+
+            name_mappings: list[UserNameMapping] = list()
+            for m_chat_id, m_name in self.chat_x_name.items():
+                name_mappings.append(UserNameMapping(chat_id=m_chat_id, name=m_name))
 
             await asyncio.to_thread(
                 save_encrypted_json_file,
                 self.file_path,
-                EncryptedData(mappings=mappings).dict(),
+                EncryptedData(mappings=mappings, name_mappings=name_mappings).dict(),
                 self.encryption_key,
             )
 

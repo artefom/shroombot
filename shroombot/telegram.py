@@ -12,6 +12,7 @@ from aiotdlib.api import (
     InputMessagePhoto,
     InputMessageSticker,
     InputMessageText,
+    Message,
     TextEntity,
 )
 from aiotdlib.client import Client
@@ -80,15 +81,19 @@ class LiveTelegramApi(TelegramApi):
         self,
         chat_id: int,
         message: MyMessageType,
-    ):
+    ) -> int:
         """
         Send message to specific chat and thread
+
+        Returns the sent message object
         """
 
-        await self.client.api.send_message(
+        msg = await self.client.api.send_message(
             chat_id,
             message_to_content(message),
         )
+
+        return msg.id
 
     async def send_topic_message(
         self,

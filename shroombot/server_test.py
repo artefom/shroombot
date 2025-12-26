@@ -16,7 +16,7 @@ from shroombot.server import (
     NameRandomizer,
     ServerData,
     TelegramApi,
-    process_incomming_message,
+    process_incomming_message_simple,
 )
 
 
@@ -26,17 +26,22 @@ class MockTelegramApi(TelegramApi):
     ):
         self.topic_names = topic_names
         self.chats = chats
+        self.last_message_id: int = 0
 
     async def send_message(
         self,
         chat_id: int,
         message: MyMessageType,
-    ):
+    ) -> int:
         """
         Send message to specific chat and thread
         """
         assert isinstance(message, MyTextMessage)
         self.chats[chat_id][0].append(message.text)
+
+        self.last_message_id += 1
+
+        return self.last_message_id
 
     async def send_topic_message(
         self,
@@ -106,7 +111,7 @@ async def test_server_default():
 
             chats[chat][topic].append(message)
 
-            await process_incomming_message(
+            await process_incomming_message_simple(
                 server_data, chat, topic, MyTextMessage(message)
             )
 
@@ -158,7 +163,9 @@ async def test_ban_functionality():  # pylint: disable=too-many-locals
         user_chat_id = 123456789
         user_message = MyTextMessage("Hello, this is a test message")
 
-        await process_incomming_message(server_data, user_chat_id, 0, user_message)
+        await process_incomming_message_simple(
+            server_data, user_chat_id, 0, user_message
+        )
 
         # Should have sent message to admin chat
         assert len(chats) > 0
@@ -168,7 +175,7 @@ async def test_ban_functionality():  # pylint: disable=too-many-locals
         # Test 2: Admin bans user
         admin_message = MyTextMessage(f"/ban {user_chat_id}")
 
-        await process_incomming_message(
+        await process_incomming_message_simple(
             server_data, server_data.admin_chat_id, 0, admin_message
         )
 
@@ -179,7 +186,7 @@ async def test_ban_functionality():  # pylint: disable=too-many-locals
         initial_admin_topic_count = len(chats[0])
 
         banned_user_message = MyTextMessage("This should be ignored")
-        await process_incomming_message(
+        await process_incomming_message_simple(
             server_data, user_chat_id, 0, banned_user_message
         )
 
@@ -189,7 +196,7 @@ async def test_ban_functionality():  # pylint: disable=too-many-locals
         # Test 4: Admin unbans user
         unban_message = MyTextMessage(f"/unban {user_chat_id}")
 
-        await process_incomming_message(
+        await process_incomming_message_simple(
             server_data, server_data.admin_chat_id, 0, unban_message
         )
 
@@ -202,7 +209,7 @@ async def test_ban_functionality():  # pylint: disable=too-many-locals
         initial_message_count = len(chats[0][first_topic_id])
 
         unbanned_user_message = MyTextMessage("I'm back!")
-        await process_incomming_message(
+        await process_incomming_message_simple(
             server_data, user_chat_id, 0, unbanned_user_message
         )
 
@@ -235,7 +242,7 @@ async def test_ban_commands():
 
         # Test /banned command
         banned_command = MyTextMessage("/banned")
-        await process_incomming_message(
+        await process_incomming_message_simple(
             server_data, server_data.admin_chat_id, 0, banned_command
         )
 
@@ -248,7 +255,7 @@ async def test_ban_commands():
 
         # Test /help command
         help_command = MyTextMessage("/help")
-        await process_incomming_message(
+        await process_incomming_message_simple(
             server_data, server_data.admin_chat_id, 0, help_command
         )
 

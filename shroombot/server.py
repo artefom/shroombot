@@ -53,11 +53,11 @@ class TelegramApi(ABC):
         self,
         chat_id: int,
         message: MyMessageType,
-    ) -> Message:
+    ) -> int:
         """
         Send message to specific chat and thread
 
-        Returns the sent message object
+        :returns: sent message id
         """
         ...
 
@@ -79,15 +79,6 @@ class TelegramApi(ABC):
         Creates topic in a chat.
 
         Returns topic id
-        """
-        ...
-
-    @abstractmethod
-    async def get_message(self, chat_id: int, message_id: int) -> Message:
-        """
-        Get message by ID
-
-        Returns message object
         """
         ...
 
@@ -414,7 +405,7 @@ async def _process_user_message(data: ServerData, chat_id: int, message: MyMessa
         )
 
 
-async def process_incomming_message(
+async def process_incomming_message_forum(
     data: ServerData, chat_id: int, thread_id: int, message: MyMessageType
 ):
     try:
