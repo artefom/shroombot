@@ -37,7 +37,7 @@ async def _process_user_message(data: ServerData, chat_id: int, message: MyMessa
 
     # Store mapping: forwarded_message_id -> user_chat_id
     # Note: send_message returns the Message object
-    await data.anonymizer.register_chat_topic_link(sent_message_id, chat_id)
+    await data.anonymizer.register_chat_topic_link(chat_id, sent_message_id)
 
     # Handle /start command
     if isinstance(message, MyTextMessage) and "/start" in message.text:
